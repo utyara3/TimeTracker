@@ -1,0 +1,16 @@
+default functional:
+    set state:
+        school
+        work
+        study
+        chill
+        other
+        stop - stop tracking indefinitely
+
+    view statistics:
+        times for every state
+
+ideas:
+    state note: /study математика, /another IDK
+    state grade: after changing the state, the user can rate it
+
