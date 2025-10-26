@@ -142,3 +142,8 @@ async def states_history(message: Message) -> None:
     states = await db.get_user_states(message=message, limit=5)
 
     await message.answer(msg.format_states_history(states=states))
+
+
+@router.message(F.text == msg.REPLY_KB['start_kb']['statistics'])
+async def states_statistics(message: Message) -> None:
+    await message.answer("<i>Данная функция пока что не реализована...</i>")
