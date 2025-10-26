@@ -12,7 +12,9 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram_sqlite_storage.sqlitestore import SQLStorage
 
 from config import BOT_TOKEN, STATES_DB_PATH
-from handlers import commands
+from handlers import handler
+
+from database import core as db
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -20,7 +22,9 @@ logging.basicConfig(
 )
 
 
-async def main():
+async def main() -> None:
+    await db.init_db()
+
     storage = SQLStorage(STATES_DB_PATH)
 
     bot = Bot(
@@ -30,9 +34,9 @@ async def main():
         )
     )
     dp = Dispatcher(storage=storage)
-    dp.include_router(commands.router)
+    dp.include_router(handler.router)
 
-    await bot.delete_webhook(drop_pending_updates=True)
+    # await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 

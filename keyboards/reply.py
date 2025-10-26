@@ -14,4 +14,4 @@ def _base(elements: list, adj: int) -> ReplyKeyboardBuilder:
 
 
 def start_kb() -> ReplyKeyboardBuilder:
-    return _base(msg.REPLY_KB['start_kb'], 2)
+    return _base(msg.REPLY_KB['start_kb'].values(), 2)
