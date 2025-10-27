@@ -29,9 +29,9 @@ def format_states_history(states: list[dict]) -> str:
             hours = duration_seconds // 3600
             minutes = (duration_seconds // 60) % 60
             seconds = duration_seconds % 60
-            duration_str = f"{f'{str(hours)}ч ' if hours > 1 else ''}" \
-                           f"{f'{str(minutes)}м ' if minutes > 1 else ''}" \
-                           f"{f'{str(seconds)}с' if seconds > 1 else ''}"
+            duration_str = f"{f'{str(hours)}ч ' if hours >= 1 else ''}" \
+                           f"{f'{str(minutes)}м ' if minutes >= 1 else ''}" \
+                           f"{f'{str(seconds)}с' if seconds >= 1 else ''}"
         else:
             duration_str = "⏳ Активно"
 
