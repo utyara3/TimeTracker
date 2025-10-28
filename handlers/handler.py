@@ -145,6 +145,9 @@ async def states_message(message: Message) -> None:
 @router.message(Command("history"))
 async def states_history(message: Message) -> None:
     states = await db.get_user_states(message=message, limit=5)
+    if not states:
+        await message.answer(msg.FAILURE['no_states_today'])
+
     today = datetime.today().date()
 
     states_today = []
@@ -164,6 +167,9 @@ async def states_history(message: Message) -> None:
 @router.message(Command("stats"))
 async def states_statistics(message: Message) -> None:
     user_data = await db.get_user_states(message=message)
+
+    if not user_data:
+        await message.answer(msg.FAILURE['no_states_today'])
 
     # TODAY STATISTICS
     today = datetime.today().date()

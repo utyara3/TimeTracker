@@ -14,3 +14,5 @@ ideas:
     state note: /study математика, /another IDK
     state grade: after changing the state, the user can rate it
 
+average mood in statistics
+
