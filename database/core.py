@@ -5,6 +5,7 @@ from datetime import datetime
 
 from config import USERS_DB_PATH
 from data.messages import DEFAULT_STATES
+from utils import date
 
 
 async def init_db():
@@ -78,7 +79,7 @@ async def get_state_id_by_name(state_name: str) -> int | None:
 async def get_user_states(
     message: Message | None = None,
     tg_id: int | None = None,
-    limit: int = 1
+    limit: int = -1
 ) -> list[dict[str, str]] | None:
     if message is not None:
         tg_id = message.from_user.id
@@ -120,9 +121,10 @@ async def get_current_state(
     if states is None:
         return None
 
-    for state in states:
-        if state['end_time'] is None:
-            return state
+    state = states[0]
+
+    if state['end_time'] is None:
+        return state
 
     return None
 
@@ -188,7 +190,7 @@ async def end_session(user_id: int, conn) -> None:
         return
 
     start_time_str = result[0]
-    start_time = datetime.strptime(start_time_str, '%Y-%m-%d %H:%M:%S')
+    start_time = date.to_datetime(start_time_str)
     end_time = datetime.now()
 
     duration_seconds = int((end_time - start_time).total_seconds())
@@ -197,7 +199,7 @@ async def end_session(user_id: int, conn) -> None:
         UPDATE time_sessions 
         SET end_time = ?, duration_seconds = ?
         WHERE user_id = ? AND end_time IS NULL
-    """, (end_time.strftime('%Y-%m-%d %H:%M:%S'), duration_seconds, user_id))
+    """, (date.to_string(end_time), duration_seconds, user_id))
 
 
 async def switch_state(
@@ -236,7 +238,7 @@ async def switch_state(
     async with aiosqlite.connect(USERS_DB_PATH) as conn:
         await end_session(user_id, conn)
 
-        current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        current_time = date.to_string(datetime.now())
 
         await conn.execute("""
             INSERT INTO time_sessions (user_id, state_id, start_time, tag) VALUES (?, ?, ?, ?)

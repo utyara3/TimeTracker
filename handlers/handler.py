@@ -6,9 +6,12 @@ from aiogram.fsm.context import FSMContext
 from datetime import datetime
 from collections import Counter
 
+import utils.date
 from data import messages as msg
 import keyboards.reply as reply_kb
 import keyboards.inline as inline_kb
+
+from utils import date
 
 from database import core as db
 
@@ -133,17 +136,143 @@ async def rate_time_session(callback_query: CallbackQuery):
 
 
 @router.message(F.text == msg.REPLY_KB['start_kb']['set_state'])
+@router.message(Command("set_state"))
 async def states_message(message: Message) -> None:
     await message.answer(msg.COMMON['states_message'])
 
 
 @router.message(F.text == msg.REPLY_KB['start_kb']['history'])
+@router.message(Command("history"))
 async def states_history(message: Message) -> None:
     states = await db.get_user_states(message=message, limit=5)
+    today = datetime.today().date()
 
-    await message.answer(msg.format_states_history(states=states))
+    states_today = []
+    for state in states:
+        start_day = date.to_datetime(state['start_time']).date()
+        if start_day == today:
+            states_today.append(state)
+
+    if not states_today:
+        await message.answer(msg.FAILURE['no_states_today'])
+        return
+
+    await message.answer(msg.format_states_history(states=states_today))
 
 
 @router.message(F.text == msg.REPLY_KB['start_kb']['statistics'])
+@router.message(Command("stats"))
 async def states_statistics(message: Message) -> None:
-    await message.answer("<i>Данная функция пока что не реализована...</i>")
+    user_data = await db.get_user_states(message=message)
+
+    # TODAY STATISTICS
+    today = datetime.today().date()
+    data_today = []
+    for state in user_data:
+        start_day = date.to_datetime(state['start_time']).date()
+        if start_day == today:
+            data_today.append(state)
+
+    if not data_today:
+        await message.answer("📊 За сегодня еще нет завершенных состояний")
+        return
+
+    state_count_today = len(data_today)
+
+    current_state_data = data_today[0]
+    now = datetime.now()
+
+    delta_today = now - date.to_datetime(current_state_data['start_time'])
+    delta_today_dict = {
+        'hours': delta_today.seconds // 3600,
+        'minutes': (delta_today.seconds // 60) % 60,
+        'seconds': delta_today.seconds % 60
+    }
+
+    chronology = ' → '.join([state['state_name'] for state in data_today])
+
+    total_time_today = 0
+    state_durations = {}
+    individual_sessions = []
+
+    for state in data_today:
+        state_name = state['state_name']
+
+        if state['end_time'] is None:
+            continue
+
+        duration = int(state['duration_seconds'])
+
+        if state_name in state_durations:
+            state_durations[state_name] += duration
+        else:
+            state_durations[state_name] = duration
+
+        total_time_today += duration
+
+        individual_sessions.append({
+            'name': state_name,
+            'duration': duration
+        })
+
+    if not state_durations:
+        await message.answer("📊 Нет завершенных состояний для статистики")
+        return
+
+    longest_total_state = max(state_durations.items(), key=lambda x: x[1])
+    shortest_total_state = min(state_durations.items(), key=lambda x: x[1])
+
+    longest_session = max(individual_sessions, key=lambda x: x['duration'])
+    shortest_session = min(individual_sessions, key=lambda x: x['duration'])
+
+    sorted_states = sorted(state_durations.items(), key=lambda x: x[1], reverse=True)
+    top3_time = sum(duration for _, duration in sorted_states[:3])
+    focus_percent = int((top3_time / total_time_today) * 100) if total_time_today > 0 else 0
+
+    productive_states = ['work', 'study']
+    productivity_time = sum(
+        duration for state, duration in state_durations.items()
+        if state in productive_states
+    )
+    productivity = int((productivity_time / total_time_today) * 100) if total_time_today > 0 else 0
+
+    states_in_percents = {}
+    for state, duration in state_durations.items():
+        percent = (duration / total_time_today) * 100 if total_time_today > 0 else 0
+        states_in_percents[state] = [duration, round(percent, 1)]
+
+    average_session_time = date.format_time(int(sum(state_durations.values()) / len(state_durations)))
+
+    await message.answer(msg.format_user_statistics(
+        current_state_name=current_state_data['state_name'],
+        current_state_tag=current_state_data['tag'],
+        delta_today_dict=delta_today_dict,
+        state_count_today=state_count_today,
+        chronology=chronology,
+        states_in_precents=states_in_percents,
+        productivity=productivity,
+        focus=focus_percent,
+        longest_total={
+            'name': longest_total_state[0],
+            'duration': date.format_time(longest_total_state[1])
+        },
+        shortest_total={
+            'name': shortest_total_state[0],
+            'duration': date.format_time(shortest_total_state[1])
+        },
+        longest_session={
+            'name': longest_session['name'],
+            'duration': date.format_time(longest_session['duration'])
+        },
+        shortest_session={
+            'name': shortest_session['name'],
+            'duration': date.format_time(shortest_session['duration'])
+        },
+        average_session=average_session_time
+    ))
+
+
+    # GENERAL STATISTICS
+    # coming soon...
+
+    #await message.answer(msg.format_user_statistics())
