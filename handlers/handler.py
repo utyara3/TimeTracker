@@ -241,7 +241,16 @@ async def states_statistics(message: Message) -> None:
         percent = (duration / total_time_today) * 100 if total_time_today > 0 else 0
         states_in_percents[state] = [duration, round(percent, 1)]
 
-    average_session_time = date.format_time(int(sum(state_durations.values()) / len(state_durations)))
+    if individual_sessions:
+        average_session_time = date.format_time(
+            int(
+                sum(
+                    session['duration'] for session in individual_sessions
+                ) / len(state_durations)
+            )
+        )
+    else:
+        average_session_time = "0с"
 
     await message.answer(msg.format_user_statistics(
         current_state_name=current_state_data['state_name'],
