@@ -233,7 +233,7 @@ async def states_statistics(message: Message) -> None:
 
     sorted_states = sorted(state_durations.items(), key=lambda x: x[1], reverse=True)
     top3_time = sum(duration for _, duration in sorted_states[:3])
-    focus_percent = int((top3_time / total_time_today) * 100) if total_time_today > 0 else 0
+    focus_percent = round((top3_time / total_time_today) * 100, 2) if total_time_today > 0 else 0
 
     productive_states = ['work', 'study']
     productivity_time = sum(

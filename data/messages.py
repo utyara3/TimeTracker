@@ -84,7 +84,7 @@ def format_user_statistics(
     chronology: str,
     states_in_precents: dict[str, list],
     productivity: int,
-    focus: int,
+    focus: float,
     longest_total: dict[str, str],
     shortest_total: dict[str, str],
     longest_session: dict[str, str],

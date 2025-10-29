@@ -15,4 +15,5 @@ ideas:
     state grade: after changing the state, the user can rate it
 
 average mood in statistics
-
+fix calculating in statistics (оно подсчитывает продолжительность не отдельных сессий,
+а как будто сессий по тегам)

@@ -11,6 +11,9 @@ from utils import date
 async def init_db():
     async with aiosqlite.connect(USERS_DB_PATH) as conn:
         await conn.execute('PRAGMA foreign_keys = ON')
+        await conn.execute('PRAGMA journal_mode=WAL')
+        await conn.execute('PRAGMA synchronous=NORMAL')
+        await conn.execute('PRAGMA busy_timeout=10000')
 
         cursor = await conn.cursor()
 
