@@ -195,7 +195,7 @@ async def states_statistics(message: Message) -> None:
         'seconds': delta_today.seconds % 60
     }
 
-    chronology = ' → '.join([state['state_name'] for state in data_today])
+    chronology = ' → '.join([state['state_name'] for state in data_today[::-1]])
 
     total_time_today = 0
     state_durations = {}
@@ -231,10 +231,6 @@ async def states_statistics(message: Message) -> None:
     longest_session = max(individual_sessions, key=lambda x: x['duration'])
     shortest_session = min(individual_sessions, key=lambda x: x['duration'])
 
-    sorted_states = sorted(state_durations.items(), key=lambda x: x[1], reverse=True)
-    top3_time = sum(duration for _, duration in sorted_states[:3])
-    focus_percent = round((top3_time / total_time_today) * 100, 2) if total_time_today > 0 else 0
-
     productive_states = ['work', 'study']
     productivity_time = sum(
         duration for state, duration in state_durations.items()
@@ -252,7 +248,7 @@ async def states_statistics(message: Message) -> None:
             int(
                 sum(
                     session['duration'] for session in individual_sessions
-                ) / len(state_durations)
+                ) / len(individual_sessions)
             )
         )
     else:
@@ -266,7 +262,6 @@ async def states_statistics(message: Message) -> None:
         chronology=chronology,
         states_in_precents=states_in_percents,
         productivity=productivity,
-        focus=focus_percent,
         longest_total={
             'name': longest_total_state[0],
             'duration': date.format_time(longest_total_state[1])

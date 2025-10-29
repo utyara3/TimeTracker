@@ -84,7 +84,6 @@ def format_user_statistics(
     chronology: str,
     states_in_precents: dict[str, list],
     productivity: int,
-    focus: float,
     longest_total: dict[str, str],
     shortest_total: dict[str, str],
     longest_session: dict[str, str],
@@ -127,7 +126,6 @@ def format_user_statistics(
 
 📈 <b>Активность:</b>
     🔢 <b>Сессий:</b> {state_count_today}
-    📊 <b>Продуктивность:</b> {productivity}%
     🎞️ <b>Хронология:</b> {chronology}
 
 📐 <b>Распределение:</b>
@@ -143,7 +141,7 @@ def format_user_statistics(
         
 📊 <b>Эффективность:</b>
     ⏱️ <b>Средняя сессия:</b> {average_session}
-    🎯 <b>Фокус:</b> {focus}% (топ-3)
+    📊 <b>Продуктивность:</b> {productivity}%
 """
 
 
