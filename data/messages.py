@@ -77,10 +77,11 @@ def format_commands() -> str:
 
 
 def format_user_statistics(
+    target_date: str,
     current_state_name: str,
     current_state_tag: str,
-    delta_today_dict: dict[str, int],
-    state_count_today: int,
+    delta_time: dict[str, int],
+    state_count: int,
     chronology: str,
     states_in_precents: dict[str, list],
     productivity: int,
@@ -93,7 +94,7 @@ def format_user_statistics(
     current_state = f"<code>{current_state_name}</code>"
     current_state += f"  (🏷️ <code>{current_state_tag}</code>)" if current_state_tag else ""
 
-    hours, minutes, seconds = delta_today_dict.values()
+    hours, minutes, seconds = delta_time.values()
     duration = ""
     if hours >= 1:
         duration += f"{hours}ч "
@@ -118,14 +119,14 @@ def format_user_statistics(
                             f"{state_name}: <b>{duration_percents}%</b> "
                   f"({formatted_duration})\n" + " "*4 + f"{bar}\n")
 
-    return f"""📊 <b>Статистика состояний за сегодня:</b>
+    return f"""📊 <b>Статистика состояний {target_date}:</b>
 
 🎯 <b>Текущее:</b>
     📍 <b>Состояние:</b> {current_state}
     ⌛ <b>Длится:</b> {duration}
 
 📈 <b>Активность:</b>
-    🔢 <b>Сессий:</b> {state_count_today}
+    🔢 <b>Сессий:</b> {state_count}
     🎞️ <b>Хронология:</b> {chronology}
 
 📐 <b>Распределение:</b>

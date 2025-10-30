@@ -1,12 +1,11 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
 from datetime import datetime
 from collections import Counter
 
-import utils.date
 from data import messages as msg
 import keyboards.reply as reply_kb
 import keyboards.inline as inline_kb
@@ -163,45 +162,41 @@ async def states_history(message: Message) -> None:
     await message.answer(msg.format_states_history(states=states_today))
 
 
-@router.message(F.text == msg.REPLY_KB['start_kb']['statistics'])
-@router.message(Command("stats"))
-async def states_statistics(message: Message) -> None:
-    user_data = await db.get_user_states(message=message)
+
+async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
+    user_data = await db.get_user_states(tg_id=user_id)
 
     if not user_data:
-        await message.answer(msg.FAILURE['no_states_today'])
+        return {"status": "bad", "message": msg.FAILURE['no_states_today']}
 
-    # TODAY STATISTICS
-    today = datetime.today().date()
-    data_today = []
+    target_day_data = []
     for state in user_data:
         start_day = date.to_datetime(state['start_time']).date()
-        if start_day == today:
-            data_today.append(state)
+        if start_day == target_day:
+            target_day_data.append(state)
 
-    if not data_today:
-        await message.answer("📊 За сегодня еще нет завершенных состояний")
-        return
+    if not target_day_data:
+        return {"status": "bad", "message": "📊 Нет завершенных состояний"}
 
-    state_count_today = len(data_today)
+    state_count = len(target_day_data)
 
-    current_state_data = data_today[0]
+    current_state_data = target_day_data[0]
     now = datetime.now()
 
-    delta_today = now - date.to_datetime(current_state_data['start_time'])
-    delta_today_dict = {
-        'hours': delta_today.seconds // 3600,
-        'minutes': (delta_today.seconds // 60) % 60,
-        'seconds': delta_today.seconds % 60
+    delta = now - date.to_datetime(current_state_data['start_time'])
+    delta_dict = {
+        'hours': delta.seconds // 3600,
+        'minutes': (delta.seconds // 60) % 60,
+        'seconds': delta.seconds % 60
     }
 
-    chronology = ' → '.join([state['state_name'] for state in data_today[::-1]])
+    chronology = ' → '.join([state['state_name'] for state in target_day_data[::-1]])
 
-    total_time_today = 0
+    total_time = 0
     state_durations = {}
     individual_sessions = []
 
-    for state in data_today:
+    for state in target_day_data:
         state_name = state['state_name']
 
         if state['end_time'] is None:
@@ -214,7 +209,7 @@ async def states_statistics(message: Message) -> None:
         else:
             state_durations[state_name] = duration
 
-        total_time_today += duration
+        total_time += duration
 
         individual_sessions.append({
             'name': state_name,
@@ -222,8 +217,7 @@ async def states_statistics(message: Message) -> None:
         })
 
     if not state_durations:
-        await message.answer("📊 Нет завершенных состояний для статистики")
-        return
+        return {"status": "bad", "message": "📊 Нет завершенных состояний"}
 
     longest_total_state = max(state_durations.items(), key=lambda x: x[1])
     shortest_total_state = min(state_durations.items(), key=lambda x: x[1])
@@ -236,11 +230,11 @@ async def states_statistics(message: Message) -> None:
         duration for state, duration in state_durations.items()
         if state in productive_states
     )
-    productivity = int((productivity_time / total_time_today) * 100) if total_time_today > 0 else 0
+    productivity = int((productivity_time / total_time) * 100) if total_time > 0 else 0
 
     states_in_percents = {}
     for state, duration in state_durations.items():
-        percent = (duration / total_time_today) * 100 if total_time_today > 0 else 0
+        percent = (duration / total_time) * 100 if total_time > 0 else 0
         states_in_percents[state] = [duration, round(percent, 1)]
 
     if individual_sessions:
@@ -254,35 +248,71 @@ async def states_statistics(message: Message) -> None:
     else:
         average_session_time = "0с"
 
-    await message.answer(msg.format_user_statistics(
-        current_state_name=current_state_data['state_name'],
-        current_state_tag=current_state_data['tag'],
-        delta_today_dict=delta_today_dict,
-        state_count_today=state_count_today,
-        chronology=chronology,
-        states_in_precents=states_in_percents,
-        productivity=productivity,
-        longest_total={
+    return {
+        "target_date": target_day.strftime("%d/%m/%Y"),
+        "current_state_name": current_state_data['state_name'],
+        "current_state_tag": current_state_data['tag'],
+        "delta_time": delta_dict,
+        "state_count": state_count,
+        "chronology": chronology,
+        "states_in_precents": states_in_percents,
+        "productivity": productivity,
+        "longest_total": {
             'name': longest_total_state[0],
             'duration': date.format_time(longest_total_state[1])
         },
-        shortest_total={
+        "shortest_total": {
             'name': shortest_total_state[0],
             'duration': date.format_time(shortest_total_state[1])
         },
-        longest_session={
+        "longest_session": {
             'name': longest_session['name'],
             'duration': date.format_time(longest_session['duration'])
         },
-        shortest_session={
+        "shortest_session": {
             'name': shortest_session['name'],
             'duration': date.format_time(shortest_session['duration'])
         },
-        average_session=average_session_time
-    ))
+        "average_session": average_session_time
+    }
 
 
-    # GENERAL STATISTICS
-    # coming soon...
+async def send_day_statistics(
+    tg_obj: Message | CallbackQuery,
+    target_date: datetime.date
+):
+    data = await states_statistics(tg_obj.from_user.id, target_date)
 
-    #await message.answer(msg.format_user_statistics())
+    answer = data['message'] if 'status' in data \
+        else msg.format_user_statistics(**data)
+
+    keyboard = inline_kb.pagination_date_statistics(target_date).as_markup()
+
+    if isinstance(tg_obj, Message):
+        await tg_obj.answer(
+            answer,
+            reply_markup=keyboard
+        )
+
+    else:
+        await tg_obj.message.edit_text(
+            answer,
+            reply_markup=keyboard
+        )
+
+
+@router.message(F.text == msg.REPLY_KB['start_kb']['statistics'])
+@router.message(Command("stats"))
+async def today_statistics(message: Message):
+    await send_day_statistics(message, datetime.today().date())
+
+
+@router.callback_query(F.data.startswith("date_statistics"))
+async def date_statistics(callback: CallbackQuery):
+    data = callback.data.split(":")[1]
+    if data != "today":
+        target_date = datetime.strptime(data,"%Y-%m-%d").date()
+
+        await send_day_statistics(callback, target_date)
+
+    await callback.answer()

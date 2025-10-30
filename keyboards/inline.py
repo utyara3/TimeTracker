@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardButton
 
@@ -12,5 +14,28 @@ def rate_keyboard(time_session_id: int) -> InlineKeyboardBuilder:
                 callback_data=f"rate_time_session:{time_session_id}:{num}"
             )
         )
+
+    return builder
+
+
+def pagination_date_statistics(today: datetime.date) -> InlineKeyboardBuilder:
+    yesterday = today - timedelta(days=1)
+    tomorrow = today + timedelta(days=1)
+
+    builder = InlineKeyboardBuilder()
+    builder.row(
+        InlineKeyboardButton(
+            text=f"{yesterday.day} ←",
+            callback_data=f"date_statistics:{yesterday}"
+        ),
+        InlineKeyboardButton(
+            text=f"{today.day}/{today.month}/{today.year}",
+            callback_data="date_statistics:today"
+        ),
+        InlineKeyboardButton(
+            text=f"→ {tomorrow.day}",
+            callback_data=f"date_statistics:{tomorrow}"
+        )
+    )
 
     return builder
