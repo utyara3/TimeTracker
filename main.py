@@ -15,15 +15,20 @@ from config import BOT_TOKEN, STATES_DB_PATH
 from handlers import handler
 
 from database import core as db
+from utils.bot_logging import setup_logging, get_logger
 
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+setup_logging(
+    name='TimeTracker',
+    log_file='bot.log',
     level=logging.INFO
 )
+
+main_logger = get_logger('main')
 
 
 async def main() -> None:
     await db.init_db()
+    main_logger.info("Базы инициализированы")
 
     storage = SQLStorage(STATES_DB_PATH)
 
@@ -37,6 +42,7 @@ async def main() -> None:
     dp.include_router(handler.router)
 
     # await bot.delete_webhook(drop_pending_updates=True)
+    main_logger.info("Бот запущен")
     await dp.start_polling(bot)
 
 

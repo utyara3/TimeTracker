@@ -11,16 +11,20 @@ import keyboards.reply as reply_kb
 import keyboards.inline as inline_kb
 
 from utils import date
-
+from utils import bot_logging as bot_log
 from database import core as db
 
 router = Router()
+logger = bot_log.get_logger(__name__)
 
 
 @router.message(Command('start'))
 async def start_cmd(message: Message):
     if not await db.is_user_in_database(message):
         await db.add_user_to_database(message)
+        logger.info(f"Пользователь "
+                    f"{message.from_user.full_name} "
+                    f"({message.from_user.id}) был добавлен в базу данных")
 
     await message.answer(
         msg.COMMON['start_cmd'],
@@ -144,8 +148,10 @@ async def states_message(message: Message) -> None:
 @router.message(Command("history"))
 async def states_history(message: Message) -> None:
     states = await db.get_user_states(message=message, limit=5)
+
     if not states:
         await message.answer(msg.FAILURE['no_states_today'])
+        return
 
     today = datetime.today().date()
 
