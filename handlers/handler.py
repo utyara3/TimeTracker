@@ -181,9 +181,15 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
     state_count = len(target_day_data)
 
     current_state_data = target_day_data[0]
-    now = datetime.now()
+    start_time = date.to_datetime(current_state_data['start_time'])
+    if current_state_data.get('end_time'):
+        end_time = date.to_datetime(current_state_data['end_time'])
+    elif start_time.date() == datetime.now().date():
+        end_time = datetime.now()
+    else:
+        end_time = datetime.combine(target_day, datetime.max.time())
 
-    delta = now - date.to_datetime(current_state_data['start_time'])
+    delta = end_time - start_time
     delta_dict = {
         'hours': delta.seconds // 3600,
         'minutes': (delta.seconds // 60) % 60,
