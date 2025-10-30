@@ -29,7 +29,7 @@ def pagination_date_statistics(today: datetime.date) -> InlineKeyboardBuilder:
             callback_data=f"date_statistics:{yesterday}"
         ),
         InlineKeyboardButton(
-            text=f"{today.day}/{today.month}/{today.year}",
+            text=f"{today.day}/{today.month}",
             callback_data="date_statistics:today"
         ),
         InlineKeyboardButton(
