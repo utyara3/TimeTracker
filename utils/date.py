@@ -1,10 +1,11 @@
 from datetime import datetime, timezone, timedelta
 
 
-BOT_TIMEZONE = timezone(timedelta(hours=3))
+# BOT_TIMEZONE = timezone(timedelta(hours=3))
 
 def get_now():
-    return datetime.now(BOT_TIMEZONE)
+    #return datetime.now(BOT_TIMEZONE)
+    return datetime.now()
 
 
 def to_datetime(string_time: str) -> datetime:
