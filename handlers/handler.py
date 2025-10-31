@@ -87,6 +87,8 @@ async def change_state_cmd(message: Message):
         selected_state = selected_state[1:]
 
     switch = await db.switch_state(message=message, new_state=selected_state, tag=tag)
+
+
     prev_state = switch['previous_state']
     start_time = switch['start_time']
     new_state = switch['new_state']
@@ -124,6 +126,9 @@ async def change_state_cmd(message: Message):
         )
         if prev_state is not None:
             await send_rate_message(message, time_session_id)
+
+        logger.info(f"Пользователь {message.from_user.full_name} ({message.from_user.id}) "
+                    f"изменил состояние с {prev_state} ({prev_tag}) на {new_state} ({new_tag})")
     else:
         await message.answer(msg.FAILURE['state_change'])
 
