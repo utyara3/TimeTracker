@@ -101,7 +101,7 @@ async def change_state_cmd(message: Message):
     if start_time is None:
         delta_time_str = "None"
     else:
-        delta_time = datetime.now() - datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S')
+        delta_time = date.get_now() - datetime.strptime(start_time, '%Y-%m-%d %H:%M:%S')
         hours = delta_time.seconds // 3600
         minutes = (delta_time.seconds // 60) % 60
         seconds = delta_time.seconds % 60
@@ -158,7 +158,7 @@ async def states_history(message: Message) -> None:
         await message.answer(msg.FAILURE['no_states_today'])
         return
 
-    today = datetime.today().date()
+    today = date.get_now().date()
 
     states_today = []
     for state in states:
@@ -195,10 +195,13 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
     start_time = date.to_datetime(current_state_data['start_time'])
     if current_state_data.get('end_time'):
         end_time = date.to_datetime(current_state_data['end_time'])
-    elif start_time.date() == datetime.now().date():
-        end_time = datetime.now()
+    elif start_time.date() == date.get_now().date():
+        end_time = date.get_now()
     else:
-        end_time = datetime.combine(target_day, datetime.max.time())
+        end_time = datetime.combine(
+            target_day,
+            datetime.max.time()
+        ).replace(tzinfo=date.BOT_TIMEZONE)
 
     delta = end_time - start_time
     delta_dict = {
@@ -321,7 +324,7 @@ async def send_day_statistics(
 @router.message(F.text == msg.REPLY_KB['start_kb']['statistics'])
 @router.message(Command("stats"))
 async def today_statistics(message: Message):
-    await send_day_statistics(message, datetime.today().date())
+    await send_day_statistics(message, date.get_now().date())
 
 
 @router.callback_query(F.data.startswith("date_statistics"))

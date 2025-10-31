@@ -194,7 +194,7 @@ async def end_session(user_id: int, conn) -> None:
 
     start_time_str = result[0]
     start_time = date.to_datetime(start_time_str)
-    end_time = datetime.now()
+    end_time = date.get_now()
 
     duration_seconds = int((end_time - start_time).total_seconds())
 
@@ -241,7 +241,7 @@ async def switch_state(
     async with aiosqlite.connect(USERS_DB_PATH) as conn:
         await end_session(user_id, conn)
 
-        current_time = date.to_string(datetime.now())
+        current_time = date.to_string(date.get_now())
 
         await conn.execute("""
             INSERT INTO time_sessions (user_id, state_id, start_time, tag) VALUES (?, ?, ?, ?)
