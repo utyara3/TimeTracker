@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup
+from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
@@ -201,7 +201,7 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
         end_time = datetime.combine(
             target_day,
             datetime.max.time()
-        ).replace(tzinfo=date.BOT_TIMEZONE)
+        )
 
     delta = end_time - start_time
     delta_dict = {

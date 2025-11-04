@@ -1,7 +1,6 @@
 import aiosqlite
 
 from aiogram.types import Message
-from datetime import datetime
 
 from config import USERS_DB_PATH
 from data.messages import DEFAULT_STATES
