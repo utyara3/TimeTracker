@@ -1,4 +1,5 @@
-from datetime import datetime, timezone, timedelta
+import re
+from datetime import datetime
 
 
 # BOT_TIMEZONE = timezone(timedelta(hours=3))
@@ -32,3 +33,24 @@ def format_time(time: datetime | int) -> str:
     f"{f'{str(seconds)}с' if seconds >= 1 else ''}"
 
     return ret
+
+
+def duration_seconds_from_string(time_str: str) -> int:
+    time_str = time_str.strip().lower()
+
+    hours = 0
+    minutes = 0
+
+    h_match = re.search(r"(\d+)\s*(h|ч)", time_str)
+    m_match = re.search(r"(\d+)\s*(m|м)", time_str)
+
+    if h_match:
+        hours = int(h_match.group(1))
+    if m_match:
+        minutes = int(m_match.group(1))
+
+    return hours * 60 * 60 + minutes * 60
+
+
+def format_without_date(time: datetime):
+    return datetime.strftime(time, "%H:%M:%S")

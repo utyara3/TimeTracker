@@ -1,4 +1,5 @@
 import aiosqlite
+from datetime import datetime, timedelta
 
 from aiogram.types import Message
 
@@ -259,3 +260,43 @@ async def rate_state(time_session_id: int, mood: int) -> None:
         """, (mood, time_session_id))
 
         await conn.commit()
+
+
+async def fix_states(
+    first_state_end_time: datetime,
+    first_state_duration_seconds: int,
+    new_state: str,
+    new_tag: str,
+    message: Message | None = None,
+    tg_id: int | None = None,
+):
+    if message is not None:
+        tg_id = message.from_user.id
+
+    user_id = await get_user_id_by_tg_id(tg_id=tg_id)
+    if not user_id:
+        return False
+
+    state_id = await get_state_id_by_name(state_name=new_state)
+    if not state_id:
+        return False
+
+    async with aiosqlite.connect(USERS_DB_PATH) as conn:
+        await conn.execute("""
+            UPDATE time_sessions 
+            SET end_time = ?, duration_seconds = ?
+            WHERE user_id = ? AND end_time IS NULL
+        """, (first_state_end_time, first_state_duration_seconds, user_id))
+
+        await conn.execute("""
+            INSERT INTO time_sessions (user_id, state_id, start_time, tag) 
+            VALUES (?, ?, ?, ?)
+        """, (user_id, state_id, first_state_end_time, new_tag))
+
+        await conn.commit()
+            
+        
+    return True
+        
+
+

@@ -1,9 +1,9 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
-from aiogram.filters import Command
+from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from collections import Counter
 
 from data import messages as msg
@@ -65,6 +65,76 @@ async def user_tags(message: Message) -> None:
         num += 1
 
     await message.answer(text)
+
+
+@router.message(Command("fix"))
+async def fix_cmd(message: Message, command: CommandObject) -> None:
+    args = command.args
+
+    if not args:
+        await message.answer(msg.FAILURE['wrong_args'])
+        return
+
+    parts = args.split()
+
+    time_parts = []
+    state_and_tag = []
+
+    for part in parts:
+        if any(char in part for char in ['h', 'm', 'ч', 'м']):
+            time_parts.append(part)
+        else:
+            state_and_tag = parts[len(time_parts):]
+            break
+
+    if not time_parts or not state_and_tag:
+        await message.answer(msg.FAILURE['wrong_args'])
+        return
+
+
+    states = await db.get_user_states(message=message, limit=2)
+    if not states or len(states) < 2:
+        await message.answer(msg.FAILURE['no_states_today'])
+        return
+
+    current_state = states[0]
+    first_state_start_time = date.to_datetime(current_state['start_time'])
+
+    dur_sec_args = date.duration_seconds_from_string(' '.join(time_parts))
+    if dur_sec_args > (date.get_now() - first_state_start_time).seconds:
+        await message.answer(msg.FAILURE['wrong_args'])
+        return
+
+    first_state_end_time = date.get_now().replace(microsecond=0) - timedelta(seconds=dur_sec_args)
+    first_state_duration_seconds = (first_state_end_time - first_state_start_time).seconds
+
+    new_state = state_and_tag[0]
+    new_tag = ' '.join(state_and_tag[1:])
+
+    fix_state = await db.fix_states(
+        message=message,
+        first_state_end_time=first_state_end_time,
+        first_state_duration_seconds=first_state_duration_seconds,
+        new_state=new_state,
+        new_tag=new_tag
+    )
+
+    if not fix_state:
+        await message.answer(msg.FAILURE['state_change'])
+        return
+
+    await message.answer(
+        msg.format_fix_cmd(
+            state_name=current_state['state_name'],
+            state_start_time=date.format_without_date(
+                date.to_datetime(current_state['start_time'])
+            ),
+            new_state=new_state,
+            prev_state_end_time=date.format_without_date(first_state_end_time)
+        )
+    )
+
+    await send_rate_message(message, int(current_state['id']))
 
 
 async def send_rate_message(message: Message, time_session_id: int) -> None:
