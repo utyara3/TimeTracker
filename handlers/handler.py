@@ -93,7 +93,7 @@ async def fix_cmd(message: Message, command: CommandObject) -> None:
 
 
     states = await db.get_user_states(message=message, limit=2)
-    if not states or len(states) < 2:
+    if not states or len(states) < 1:
         await message.answer(msg.FAILURE['no_states_today'])
         return
 
