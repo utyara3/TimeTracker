@@ -51,11 +51,13 @@ def setup_logging(
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
 
+    """
     logger.info("=" * 60)
     logger.info("Логирование инициализировано")
     logger.info(f"Логи сохраняются в {LOG_DIR / log_file}")
     logger.info(f"Уровень лоирования: {logging.getLevelName(level)}")
     logger.info("=" * 60)
+    """
 
     return logger
 
