@@ -269,7 +269,7 @@ async def fix_states(
     new_tag: str,
     message: Message | None = None,
     tg_id: int | None = None,
-):
+) -> bool:
     if message is not None:
         tg_id = message.from_user.id
 

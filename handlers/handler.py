@@ -145,7 +145,7 @@ async def send_rate_message(message: Message, time_session_id: int) -> None:
 
 @router.message(Command(*msg.DEFAULT_STATES.keys()))
 async def change_state_cmd(message: Message):
-    text = message.text
+    text = message.text.lower()
     parted = text.split()
     tag = ''
 
@@ -155,6 +155,7 @@ async def change_state_cmd(message: Message):
     selected_state = parted[0]
     if selected_state.startswith('/'):
         selected_state = selected_state[1:]
+
 
     switch = await db.switch_state(message=message, new_state=selected_state, tag=tag)
 
@@ -241,7 +242,6 @@ async def states_history(message: Message) -> None:
         return
 
     await message.answer(msg.format_states_history(states=states_today))
-
 
 
 async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
