@@ -73,6 +73,7 @@ async def fix_cmd(message: Message, command: CommandObject) -> None:
 
     if not args:
         await message.answer(msg.FAILURE['wrong_args'])
+        logger.info("fix no args")
         return
 
     parts = args.split()
@@ -89,6 +90,7 @@ async def fix_cmd(message: Message, command: CommandObject) -> None:
 
     if not time_parts or not state_and_tag:
         await message.answer(msg.FAILURE['wrong_args'])
+        logger.info(f"fix wrong args time parts or state and tag:\n{time_parts}\n{state_and_tag}")
         return
 
 
@@ -102,7 +104,8 @@ async def fix_cmd(message: Message, command: CommandObject) -> None:
 
     dur_sec_args = date.duration_seconds_from_string(' '.join(time_parts))
     if dur_sec_args > (date.get_now() - first_state_start_time).seconds:
-        await message.answer(msg.FAILURE['wrong_args'])
+        await message.answer(msg.FAILURE['fix_wrong_time'])
+        logger.info(f"fix wrong args dur_sec_args and time:\n{dur_sec_args}\n{date.get_now()}\n{first_state_start_time}")
         return
 
     first_state_end_time = date.get_now().replace(microsecond=0) - timedelta(seconds=dur_sec_args)
