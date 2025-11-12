@@ -92,7 +92,6 @@ async def fix_cmd(message: Message, command: CommandObject) -> None:
 
     if not time_parts or not state_and_tag:
         await message.answer(msg.FAILURE['wrong_args'])
-        logger.info(f"fix wrong args time parts or state and tag:\n{time_parts}\n{state_and_tag}")
         return
 
     states = await db.get_user_states(message=message, limit=2)
