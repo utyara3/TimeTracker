@@ -1,3 +1,5 @@
+import re
+
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandObject
@@ -82,7 +84,7 @@ async def fix_cmd(message: Message, command: CommandObject) -> None:
     state_and_tag = []
 
     for part in parts:
-        if any(char in part for char in ['h', 'm', 'ч', 'м']):
+        if re.search(r'\d+\s*[hmчм]', part):
             time_parts.append(part)
         else:
             state_and_tag = parts[len(time_parts):]
@@ -93,23 +95,22 @@ async def fix_cmd(message: Message, command: CommandObject) -> None:
         logger.info(f"fix wrong args time parts or state and tag:\n{time_parts}\n{state_and_tag}")
         return
 
-
     states = await db.get_user_states(message=message, limit=2)
     if not states or len(states) < 1:
         await message.answer(msg.FAILURE['no_states_today'])
         return
 
     current_state = states[0]
-    first_state_start_time = date.to_datetime(current_state['start_time'])
+    state_start_time = date.to_datetime(current_state['start_time'])
 
     dur_sec_args = date.duration_seconds_from_string(' '.join(time_parts))
-    if dur_sec_args > (date.get_now() - first_state_start_time).seconds:
+    total_duration = (date.get_now() - state_start_time).total_seconds()
+    if dur_sec_args > total_duration:
         await message.answer(msg.FAILURE['fix_wrong_time'])
-        logger.info(f"fix wrong args dur_sec_args and time:\n{dur_sec_args}\n{date.get_now()}\n{first_state_start_time}")
         return
 
-    first_state_end_time = date.get_now().replace(microsecond=0) - timedelta(seconds=dur_sec_args)
-    first_state_duration_seconds = (first_state_end_time - first_state_start_time).seconds
+    first_state_duration_seconds = int(total_duration - timedelta(seconds=dur_sec_args).total_seconds())
+    first_state_end_time = state_start_time + timedelta(seconds=first_state_duration_seconds)
 
     new_state = state_and_tag[0]
     new_tag = ' '.join(state_and_tag[1:])

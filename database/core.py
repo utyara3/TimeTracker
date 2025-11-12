@@ -294,8 +294,7 @@ async def fix_states(
         """, (user_id, state_id, first_state_end_time, new_tag))
 
         await conn.commit()
-            
-        
+
     return True
         
 
