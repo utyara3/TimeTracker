@@ -159,9 +159,7 @@ async def change_state_cmd(message: Message):
     if selected_state.startswith('/'):
         selected_state = selected_state[1:]
 
-
     switch = await db.switch_state(message=message, new_state=selected_state, tag=tag)
-
 
     prev_state = switch['previous_state']
     start_time = switch['start_time']
@@ -289,6 +287,11 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
     state_durations = {}
     individual_sessions = []
 
+    # Отдельные переменные для данных без sleep
+    state_durations_no_sleep = {}
+    individual_sessions_no_sleep = []
+    total_time_no_sleep = 0
+
     for state in target_day_data:
         state_name = state['state_name']
 
@@ -297,6 +300,7 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
 
         duration = int(state['duration_seconds'])
 
+        # Все состояния (включая sleep) для общей статистики
         if state_name in state_durations:
             state_durations[state_name] += duration
         else:
@@ -309,36 +313,57 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
             'duration': duration
         })
 
+        # Только не-sleep состояния для специальной статистики
+        if state_name != 'sleep':
+            if state_name in state_durations_no_sleep:
+                state_durations_no_sleep[state_name] += duration
+            else:
+                state_durations_no_sleep[state_name] = duration
+
+            total_time_no_sleep += duration
+
+            individual_sessions_no_sleep.append({
+                'name': state_name,
+                'duration': duration
+            })
+
     if not state_durations:
         return {"status": "bad", "message": "📊 Нет завершенных состояний"}
 
-    longest_total_state = max(state_durations.items(), key=lambda x: x[1])
-    shortest_total_state = min(state_durations.items(), key=lambda x: x[1])
-
-    longest_session = max(individual_sessions, key=lambda x: x['duration'])
-    shortest_session = min(individual_sessions, key=lambda x: x['duration'])
-
-    productive_states = ['work', 'study']
-    productivity_time = sum(
-        duration for state, duration in state_durations.items()
-        if state in productive_states
-    )
-    productivity = int((productivity_time / total_time) * 100) if total_time > 0 else 0
-
+    # Расчеты для всех состояний (включая sleep)
     states_in_percents = {}
     for state, duration in state_durations.items():
         percent = (duration / total_time) * 100 if total_time > 0 else 0
         states_in_percents[state] = [duration, round(percent, 1)]
 
-    if individual_sessions:
+    # Расчеты только для не-sleep состояний
+    if state_durations_no_sleep:
+        longest_total_state = max(state_durations_no_sleep.items(), key=lambda x: x[1])
+        shortest_total_state = min(state_durations_no_sleep.items(), key=lambda x: x[1])
+
+        longest_session = max(individual_sessions_no_sleep, key=lambda x: x['duration'])
+        shortest_session = min(individual_sessions_no_sleep, key=lambda x: x['duration'])
+
+        productive_states = ['work', 'study']
+        productivity_time = sum(
+            duration for state, duration in state_durations_no_sleep.items()
+            if state in productive_states
+        )
+        productivity = int((productivity_time / total_time_no_sleep) * 100) if total_time_no_sleep > 0 else 0
+
         average_session_time = date.format_time(
             int(
-                sum(
-                    session['duration'] for session in individual_sessions
-                ) / len(individual_sessions)
+                sum(session['duration'] for session in individual_sessions_no_sleep)
+                / len(individual_sessions_no_sleep)
             )
         )
     else:
+        # Если есть только sleep или нет завершенных не-sleep состояний
+        longest_total_state = ('—', 0)
+        shortest_total_state = ('—', 0)
+        longest_session = {'name': '—', 'duration': 0}
+        shortest_session = {'name': '—', 'duration': 0}
+        productivity = 0
         average_session_time = "0с"
 
     return {
@@ -348,25 +373,25 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
         "delta_time": delta_dict,
         "state_count": state_count,
         "chronology": chronology,
-        "states_in_precents": states_in_percents,
-        "productivity": productivity,
+        "states_in_precents": states_in_percents,  # Все состояния включая sleep
+        "productivity": productivity,  # Без учета sleep
         "longest_total": {
             'name': longest_total_state[0],
-            'duration': date.format_time(longest_total_state[1])
-        },
+            'duration': date.format_time(longest_total_state[1]) if longest_total_state[1] > 0 else "—"
+        },  # Без учета sleep
         "shortest_total": {
             'name': shortest_total_state[0],
-            'duration': date.format_time(shortest_total_state[1])
-        },
+            'duration': date.format_time(shortest_total_state[1]) if shortest_total_state[1] > 0 else "—"
+        },  # Без учета sleep
         "longest_session": {
             'name': longest_session['name'],
-            'duration': date.format_time(longest_session['duration'])
-        },
+            'duration': date.format_time(longest_session['duration']) if longest_session['duration'] > 0 else "—"
+        },  # Без учета sleep
         "shortest_session": {
             'name': shortest_session['name'],
-            'duration': date.format_time(shortest_session['duration'])
-        },
-        "average_session": average_session_time
+            'duration': date.format_time(shortest_session['duration']) if shortest_session['duration'] > 0 else "—"
+        },  # Без учета sleep
+        "average_session": average_session_time  # Без учета sleep
     }
 
 

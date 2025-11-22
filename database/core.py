@@ -222,8 +222,7 @@ async def switch_state(
     prev_state_name = prev_state_data.get('state_name', '') if prev_state_data else None
     prev_state_start_time = prev_state_data.get('start_time', 0) if prev_state_data else None
     prev_state_tag = prev_state_data.get('tag', '') if prev_state_data else None
-    prev_state_time_session_id = prev_state_data.get('id', '') \
-        if prev_state_data else None
+    prev_state_time_session_id = prev_state_data.get('id', '') if prev_state_data else None
 
     state_id = await get_state_id_by_name(state_name=new_state)
     if not state_id:
