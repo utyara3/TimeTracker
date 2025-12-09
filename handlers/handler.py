@@ -20,6 +20,29 @@ router = Router()
 logger = bot_log.get_logger(__name__)
 
 
+async def answer_or_edit(
+    tg_obj: Message | CallbackQuery,
+    text: str,
+    keyboard = None
+) -> None:
+    if isinstance(tg_obj, Message):
+        if keyboard:
+            await tg_obj.answer(
+                text,
+                reply_markup=keyboard
+            )
+        else:
+            await tg_obj.answer(text)
+    else:
+        if keyboard:
+            await tg_obj.message.edit_text(
+                text,
+                reply_markup=keyboard
+            )
+        else:
+            await tg_obj.message.edit_text(text)
+
+
 @router.message(Command('start'))
 async def start_cmd(message: Message):
     if not await db.is_user_in_database(message):
@@ -223,26 +246,50 @@ async def states_message(message: Message) -> None:
 
 @router.message(F.text == msg.REPLY_KB['start_kb']['history'])
 @router.message(Command("history"))
-async def states_history(message: Message) -> None:
-    states = await db.get_user_states(message=message, limit=5)
-
-    if not states:
-        await message.answer(msg.FAILURE['no_states_today'])
-        return
-
+async def states_history_today(message: Message) -> None:
     today = date.get_now().date()
 
-    states_today = []
-    for state in states:
-        start_day = date.to_datetime(state['start_time']).date()
-        if start_day == today:
-            states_today.append(state)
+    await send_day_history(message, today)
 
-    if not states_today:
-        await message.answer(msg.FAILURE['no_states_today'])
+
+async def send_day_history(
+    tg_obj: Message | CallbackQuery,
+    target_day: datetime.date
+) -> None:
+    states = await db.get_user_states(tg_obj=tg_obj)
+
+    keyboard = inline_kb.pagination_date_kb("date_history", target_day).as_markup()
+
+    if not states:
+        await answer_or_edit(tg_obj, msg.FAILURE['no_states_today'], keyboard=keyboard)
         return
 
-    await message.answer(msg.format_states_history(states=states_today))
+    states_date = []
+    for state in states:
+        start_day = date.to_datetime(state['start_time']).date()
+        if start_day == target_day:
+            states_date.append(state)
+
+    if not states_date:
+        await answer_or_edit(tg_obj, msg.FAILURE['no_states_today'], keyboard=keyboard)
+        return
+
+    await answer_or_edit(
+        tg_obj,
+        msg.format_states_history(states=states_date),
+        keyboard=keyboard
+    )
+
+
+@router.callback_query(F.data.startswith("date_history"))
+async def date_statistics(callback: CallbackQuery):
+    data = callback.data.split(":")[1]
+    if data != "today":
+        target_date = datetime.strptime(data,"%Y-%m-%d").date()
+
+        await send_day_history(callback, target_date)
+
+    await callback.answer()
 
 
 async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
@@ -404,19 +451,9 @@ async def send_day_statistics(
     answer = data['message'] if 'status' in data \
         else msg.format_user_statistics(**data)
 
-    keyboard = inline_kb.pagination_date_statistics(target_date).as_markup()
+    keyboard = inline_kb.pagination_date_kb("date_statistics", target_date).as_markup()
 
-    if isinstance(tg_obj, Message):
-        await tg_obj.answer(
-            answer,
-            reply_markup=keyboard
-        )
-
-    else:
-        await tg_obj.message.edit_text(
-            answer,
-            reply_markup=keyboard
-        )
+    await answer_or_edit(tg_obj, answer, keyboard=keyboard)
 
 
 @router.message(F.text == msg.REPLY_KB['start_kb']['statistics'])

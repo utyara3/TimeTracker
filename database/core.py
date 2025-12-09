@@ -1,7 +1,7 @@
 import aiosqlite
 from datetime import datetime, timedelta
 
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 
 from config import USERS_DB_PATH
 from data.messages import DEFAULT_STATES
@@ -80,15 +80,14 @@ async def get_state_id_by_name(state_name: str) -> int | None:
 
 
 async def get_user_states(
-    message: Message | None = None,
+    tg_obj: Message | CallbackQuery | None = None,
     tg_id: int | None = None,
     limit: int = -1
 ) -> list[dict[str, str]] | None:
-    if message is not None:
-        tg_id = message.from_user.id
+    if tg_obj is not None:
+        tg_id = tg_obj.from_user.id
 
     user_id = await get_user_id_by_tg_id(tg_id=tg_id)
-
     async with aiosqlite.connect(USERS_DB_PATH) as conn:
         cursor = await conn.execute("""
             SELECT ts.*, s.name as state_name
@@ -100,7 +99,6 @@ async def get_user_states(
         """, (user_id, limit))
 
         states = await cursor.fetchall()
-
         if not states:
             return None
 

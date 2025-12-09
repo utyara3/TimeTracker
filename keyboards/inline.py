@@ -18,7 +18,7 @@ def rate_keyboard(time_session_id: int) -> InlineKeyboardBuilder:
     return builder
 
 
-def pagination_date_statistics(today: datetime.date) -> InlineKeyboardBuilder:
+def pagination_date_kb(info: str, today: datetime.date) -> InlineKeyboardBuilder:
     yesterday = today - timedelta(days=1)
     tomorrow = today + timedelta(days=1)
 
@@ -26,15 +26,15 @@ def pagination_date_statistics(today: datetime.date) -> InlineKeyboardBuilder:
     builder.row(
         InlineKeyboardButton(
             text=f"{yesterday.day} ←",
-            callback_data=f"date_statistics:{yesterday}"
+            callback_data=f"{info}:{yesterday}"
         ),
         InlineKeyboardButton(
             text=f"{today.day}/{today.month}",
-            callback_data="date_statistics:today"
+            callback_data=f"{info}:today"
         ),
         InlineKeyboardButton(
             text=f"→ {tomorrow.day}",
-            callback_data=f"date_statistics:{tomorrow}"
+            callback_data=f"{info}:{tomorrow}"
         )
     )
 

@@ -1,5 +1,5 @@
 from utils import date
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 def format_switch_state_message(
@@ -17,9 +17,9 @@ def format_switch_state_message(
 🕐 <b>Интервал:</b> <i>{delta_time}</i>"""
 
 
-def format_states_history(states: list[dict]) -> str:
+def old_format_states_history(states: list[dict]) -> str:
     if not states:
-        return "📭 История состояний за сегодня пуста"
+        return "📭 история состояний за сегодня пуста"
 
     ret_str = "📊 <b>История состояний сегодня:</b>\n\n"
 
@@ -65,6 +65,49 @@ def format_states_history(states: list[dict]) -> str:
     ⏳ {duration_str} {mood_str}
 {tag_str} {divide}\n\n"""
 
+    return ret_str
+
+
+def format_states_history(states: list[dict]) -> str:
+    if not states:
+        return "📭 История состояний за сегодня пуста"
+    
+    ret_str = ""
+
+    for i, state in enumerate(states):
+        state_name = state["state_name"]
+        start_time = datetime.strftime(
+            date.to_datetime(state['start_time']),
+            "%H:%M"
+        )
+        if state['end_time']:
+            end_time = datetime.strftime(
+                date.to_datetime(state['end_time']),
+                "%H:%M"
+            )
+        else:
+            end_time = "now"
+
+        duration_seconds = state.get("duration_seconds", 0)
+        mood = state.get("mood")
+        tag = state.get("tag", "")
+
+        if duration_seconds:
+            duration_str = date.format_time(duration_seconds)
+        else:
+            duration_str = date.format_time(
+                int((date.get_now() - date.to_datetime(
+                    state['start_time']
+                )).total_seconds())
+            )
+
+        mood_str = "| " + ("*" * mood if mood else "#")
+
+        tag_str = f" | 🏷️ {tag}" if tag else ""
+        
+        ret_str += f"""<b>{state_name}</b> {tag_str}
+{start_time} - {end_time} | {duration_str} {mood_str}\n\n"""
+    
     return ret_str
 
 

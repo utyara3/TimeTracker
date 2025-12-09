@@ -1,0 +1,5 @@
+asyncio
+logging
+aiogram
+aiosqlite
+python-dotenv
