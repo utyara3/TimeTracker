@@ -114,7 +114,7 @@ async def get_current_state(
     tg_id: int | None = None
 ) -> dict[str, str] | None:
     states = await get_user_states(
-        message=message,
+        tg_obj=message,
         tg_id=tg_id,
         limit=1
     )

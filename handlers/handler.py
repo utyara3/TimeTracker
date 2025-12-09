@@ -117,7 +117,7 @@ async def fix_cmd(message: Message, command: CommandObject) -> None:
         await message.answer(msg.FAILURE['wrong_args'])
         return
 
-    states = await db.get_user_states(message=message, limit=2)
+    states = await db.get_user_states(tg_obj=message, limit=2)
     if not states or len(states) < 1:
         await message.answer(msg.FAILURE['no_states_today'])
         return
