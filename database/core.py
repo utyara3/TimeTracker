@@ -8,7 +8,7 @@ from data.messages import DEFAULT_STATES
 from utils import date
 
 
-async def init_db():
+async def init_db() -> None:
     async with aiosqlite.connect(USERS_DB_PATH) as conn:
         await conn.execute('PRAGMA foreign_keys = ON')
         await conn.execute('PRAGMA journal_mode=WAL')
@@ -128,6 +128,26 @@ async def get_current_state(
         return state
 
     return None
+
+
+async def get_state_by_id(state_id: int) -> dict | None:
+    async with aiosqlite.connect(USERS_DB_PATH) as conn:
+        cursor = await conn.execute("""
+            SELECT u.tg_id, s.name, ts.tag, ts.start_time, 
+            ts.end_time, ts.duration_seconds, ts.mood
+            FROM time_sessions ts
+            JOIN users u ON ts.user_id = u.id
+            JOIN states s ON ts.state_id = s.id 
+            WHERE ts.id = ?
+        """, (state_id, )
+        )
+        res = await cursor.fetchone()
+
+        columns = [description[0] for description in cursor.description]
+        
+        # tg_id, name(state_name), tag, 
+        # start_time, end_time, duration_seconds, mood
+        return dict(zip(columns, res))
 
 
 async def get_user_id_by_tg_id(
@@ -293,6 +313,26 @@ async def fix_states(
         await conn.commit()
 
     return True
-        
 
+
+async def update_state_info(state_id: int, info: dict) -> None:
+    async with aiosqlite.connect(USERS_DB_PATH) as conn:
+        if info.get('state_name'):
+            await conn.execute("""
+                UPDATE time_sessions
+                SET state_id = (SELECT id FROM states WHERE name = ?)
+                WHERE id = ?
+            """, (info['state_name'], state_id))
+
+        if info.get('tag'):
+            await conn.execute("""
+                UPDATE time_sessions SET tag = ? WHERE id = ?
+            """, (info['tag'], state_id))
+        
+        if info.get('mood'):
+            await conn.execute("""
+                UPDATE time_sessions SET mood = ? WHERE id = ?
+            """, (info['mood'], state_id))
+
+        await conn.commit()
 

@@ -12,7 +12,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram_sqlite_storage.sqlitestore import SQLStorage
 
 from config import BOT_TOKEN, STATES_DB_PATH
-from handlers import handler
+from handlers import user_history, user_statistics, base
 
 from database import core as db
 from utils.bot_logging import setup_logging, get_logger
@@ -39,7 +39,11 @@ async def main() -> None:
         )
     )
     dp = Dispatcher(storage=storage)
-    dp.include_router(handler.router)
+
+    #dp.include_router(basic_commands.router)
+    dp.include_router(base.router)
+    dp.include_router(user_history.router)
+    dp.include_router(user_statistics.router)
 
     # await bot.delete_webhook(drop_pending_updates=True)
     main_logger.info("Бот запущен")

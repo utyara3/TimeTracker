@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardButton
 
+from utils import date
+
 
 def rate_keyboard(time_session_id: int) -> InlineKeyboardBuilder:
     builder = InlineKeyboardBuilder()
@@ -18,24 +20,34 @@ def rate_keyboard(time_session_id: int) -> InlineKeyboardBuilder:
     return builder
 
 
-def pagination_date_kb(info: str, today: datetime.date) -> InlineKeyboardBuilder:
-    yesterday = today - timedelta(days=1)
-    tomorrow = today + timedelta(days=1)
-
-    builder = InlineKeyboardBuilder()
-    builder.row(
+def pagination_date_kb(info: str, current_day: datetime.date) -> InlineKeyboardBuilder:
+    today = date.get_now()
+    
+    yesterday = current_day - timedelta(days=1)
+    tomorrow = current_day + timedelta(days=1)
+    
+    buttons = []
+    buttons.append(
         InlineKeyboardButton(
             text=f"{yesterday.day} ←",
             callback_data=f"{info}:{yesterday}"
-        ),
-        InlineKeyboardButton(
-            text=f"{today.day}/{today.month}",
-            callback_data=f"{info}:today"
-        ),
-        InlineKeyboardButton(
-            text=f"→ {tomorrow.day}",
-            callback_data=f"{info}:{tomorrow}"
         )
     )
+    buttons.append(
+        InlineKeyboardButton(
+            text=f"{current_day.day}/{current_day.month}",
+            callback_data=f"{info}:{current_day}:edit"
+        ),
+    )
+    if current_day.day != today.day:
+        buttons.append(
+            InlineKeyboardButton(
+                text=f"→ {tomorrow.day}",
+                callback_data=f"{info}:{tomorrow}"
+            ),
+        )
+
+    builder = InlineKeyboardBuilder()
+    builder.row(*buttons)
 
     return builder
