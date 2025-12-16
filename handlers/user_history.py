@@ -82,10 +82,11 @@ async def choose_state_to_change(
     builder = InlineKeyboardBuilder()
     for state in states:
         start_time = date.to_datetime(state['start_time'])
-        if start_time.day != day.day:
+        # Фильтруем состояние точно по году, месяцу и дню
+        if start_time.date() != day:
             continue
 
-        start_time = datetime.strftime(start_time, "%H:%M")
+        start_time_str = datetime.strftime(start_time, "%H:%M")
         end_time = datetime.strftime(
             date.to_datetime(state['end_time']) if state['end_time'] else date.get_now(),
             "%H:%M"
@@ -93,7 +94,7 @@ async def choose_state_to_change(
 
         builder.row(
             InlineKeyboardButton(
-                text=f"{start_time}-{end_time} | {state['state_name']}",
+                text=f"{start_time_str}-{end_time} | {state['state_name']}",
                 callback_data=f"choose_state:{state['id']}"
             )
         )
