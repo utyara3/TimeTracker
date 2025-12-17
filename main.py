@@ -27,27 +27,31 @@ main_logger = get_logger('main')
 
 
 async def main() -> None:
-    await db.init_db()
-    main_logger.info("Базы инициализированы")
+    try:
+        await db.init_db()
+        main_logger.info("Базы инициализированы")
 
-    storage = SQLStorage(STATES_DB_PATH)
+        storage = SQLStorage(STATES_DB_PATH)
 
-    bot = Bot(
-        token=BOT_TOKEN,
-        default=DefaultBotProperties(
-            parse_mode=ParseMode.HTML
+        bot = Bot(
+            token=BOT_TOKEN,
+            default=DefaultBotProperties(
+                parse_mode=ParseMode.HTML
+            )
         )
-    )
-    dp = Dispatcher(storage=storage)
+        dp = Dispatcher(storage=storage)
 
-    #dp.include_router(basic_commands.router)
-    dp.include_router(base.router)
-    dp.include_router(user_history.router)
-    dp.include_router(user_statistics.router)
+        #dp.include_router(basic_commands.router)
+        dp.include_router(base.router)
+        dp.include_router(user_history.router)
+        dp.include_router(user_statistics.router)
 
-    # await bot.delete_webhook(drop_pending_updates=True)
-    main_logger.info("Бот запущен")
-    await dp.start_polling(bot)
+        # await bot.delete_webhook(drop_pending_updates=True)
+        main_logger.info("Бот запущен")
+        await dp.start_polling(bot)
+    except Exception as e:
+        main_logger.critical(f"Критическая ошибка при запуске: {e}", exc_info=True)
+        raise
 
 
 if __name__ == '__main__':

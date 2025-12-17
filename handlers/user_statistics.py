@@ -28,9 +28,11 @@ async def today_statistics(message: Message):
 
 @router.callback_query(F.data.startswith("date_statistics"))
 async def date_statistics(callback: CallbackQuery):
-    data = callback.data.split(":")[1]
+    parts = callback.data.split(":")
+    data = parts[1]
     
-    if data != "today":
+    # no handle date_statistics:date:edit (current day button that using in user_history)
+    if len(parts) == 2:
         target_date = datetime.strptime(data,"%Y-%m-%d").date()
 
         await send_day_statistics(callback, target_date)
@@ -107,12 +109,11 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
 
     # Calculate durations
     def calculate_duration(row):
-        if pd.notna(row['duration_seconds']):
-            return int(row['duration_seconds'])
-        else:
-            return int(
-                (date.get_now() - date.to_datetime(row['start_time'])).total_seconds()
-            )
+        return date.calculate_duration_seconds(
+            start_time=row['start_time'],
+            end_time=row.get('end_time') if pd.notna(row.get('end_time')) else None,
+            duration_seconds=int(row['duration_seconds']) if pd.notna(row['duration_seconds']) else None
+        )
     
     target_day_data['duration'] = target_day_data.apply(calculate_duration, axis=1)
 

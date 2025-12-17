@@ -54,3 +54,29 @@ def duration_seconds_from_string(time_str: str) -> int:
 
 def format_without_date(time: datetime):
     return datetime.strftime(time, "%H:%M:%S")
+
+
+def calculate_duration_seconds(
+    start_time: datetime | str,
+    end_time: datetime | str | None = None,
+    duration_seconds: int | None = None
+) -> int:
+    if duration_seconds is not None:
+        return int(duration_seconds)
+    
+    if isinstance(start_time, str):
+        start_time = to_datetime(start_time)
+    
+    if end_time is None:
+        end_time = get_now()
+    elif isinstance(end_time, str):
+        end_time = to_datetime(end_time)
+    
+    return int((end_time - start_time).total_seconds())
+
+
+def format_time_hhmm(time: datetime | str) -> str:
+    if isinstance(time, str):
+        time = to_datetime(time)
+    
+    return datetime.strftime(time, "%H:%M")

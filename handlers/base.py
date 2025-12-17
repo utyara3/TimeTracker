@@ -9,6 +9,8 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from datetime import datetime, timedelta
 from collections import Counter
 
+from pydantic.networks import MongoDsn
+
 from data import messages as msg
 import keyboards.reply as reply_kb
 import keyboards.inline as inline_kb
@@ -16,6 +18,7 @@ import keyboards.inline as inline_kb
 from utils import date
 from utils import bot_logging as bot_log
 from utils.base_utils import answer_or_edit
+from utils.states import ChangeStateTag
 
 from database import core as db
 
@@ -24,7 +27,9 @@ logger = bot_log.get_logger(__name__)
 
 
 @router.message(Command('start'))
-async def start_cmd(message: Message):
+async def start_cmd(message: Message, state: FSMContext):
+    await state.clear()
+    
     if not await db.is_user_in_database(message):
         await db.add_user_to_database(message)
         logger.info(f"Пользователь "
@@ -74,7 +79,9 @@ async def user_tags(message: Message) -> None:
 
 
 @router.message(Command("fix"))
-async def fix_cmd(message: Message, command: CommandObject) -> None:
+async def fix_cmd(message: Message, command: CommandObject, state: FSMContext) -> None:
+    await state.clear()
+    
     args = command.args
 
     if not args:
@@ -151,7 +158,9 @@ async def send_rate_message(message: Message, time_session_id: int) -> None:
 
 
 @router.message(Command(*msg.DEFAULT_STATES.keys()))
-async def change_state_cmd(message: Message):
+async def change_state_cmd(message: Message, state: FSMContext):
+    await state.clear()
+    
     text = message.text.lower()
     parted = text.split()
     tag = ''
@@ -211,12 +220,29 @@ async def change_state_cmd(message: Message):
 
 @router.callback_query(F.data.startswith("rate_time_session"))
 async def rate_time_session(callback_query: CallbackQuery):
-    data = callback_query.data
-    time_session, mood = map(int, data.split(":")[1:])
+    try:
+        parts = callback_query.data.split(":")
+        if len(parts) < 3:
+            logger.error(f"Неверный формат callback_data: {callback_query.data}")
+            await callback_query.answer("Ошибка: неверный формат данных")
+            return
+        
+        time_session = int(parts[1])
+        mood = int(parts[2])
+        print("MOOD:", mood)
+        
+        # Валидация mood
+        if mood < 1 or mood > 5:
+            logger.warning(f"Неверное значение mood: {mood}, user_id={callback_query.from_user.id}")
+            await callback_query.answer("Оценка должна быть от 1 до 5")
+            return
 
-    await db.rate_state(time_session_id=time_session, mood=mood)
+        await db.rate_state(time_session_id=time_session, mood=mood)
 
-    await callback_query.message.edit_text(msg.SUCCESS['state_rated'])
+        await callback_query.message.edit_text(msg.SUCCESS['state_rated'])
+    except (ValueError, IndexError) as e:
+        logger.error(f"Ошибка в rate_time_session: {e}, data={callback_query.data}")
+        await callback_query.answer("Ошибка обработки запроса")
 
 
 @router.message(F.text == msg.REPLY_KB['start_kb']['set_state'])

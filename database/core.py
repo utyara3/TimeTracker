@@ -109,6 +109,64 @@ async def get_user_states(
         return [dict(zip(columns, state)) for state in states]
 
 
+async def get_user_states_by_date(
+    tg_obj: Message | CallbackQuery | None = None,
+    tg_id: int | None = None,
+    target_date: datetime| None = None,
+    limit: int = -1
+) -> list[dict[str, str]] | None:
+    """
+    Получить состояния пользователя с фильтрацией по дате на уровне SQL.
+    
+    Args:
+        tg_obj: Telegram объект (Message или CallbackQuery)
+        tg_id: Telegram ID пользователя
+        target_date: Дата для фильтрации (если None, возвращает все состояния)
+        limit: Лимит результатов (-1 для всех)
+    
+    Returns:
+        Список словарей с состояниями или None
+    """
+    if tg_obj is not None:
+        tg_id = tg_obj.from_user.id
+
+    user_id = await get_user_id_by_tg_id(tg_id=tg_id)
+    if not user_id:
+        return None
+    
+    async with aiosqlite.connect(USERS_DB_PATH) as conn:
+        query = """
+            SELECT ts.*, s.name as state_name
+            FROM time_sessions ts
+            JOIN states s ON ts.state_id = s.id
+            WHERE ts.user_id = ?
+        """
+        params = [user_id]
+        
+        if target_date is not None:
+            # Фильтрация по дате на уровне SQL
+            # SQLite хранит даты в формате 'YYYY-MM-DD HH:MM:SS'
+            # Используем DATE() функцию для извлечения даты
+            date_str = target_date.strftime("%Y-%m-%d")
+            query += " AND DATE(ts.start_time) = ?"
+            params.append(date_str)
+        
+        query += " ORDER BY ts.start_time DESC"
+        
+        if limit > 0:
+            query += " LIMIT ?"
+            params.append(limit)
+        
+        cursor = await conn.execute(query, tuple(params))
+        states = await cursor.fetchall()
+        
+        if not states:
+            return None
+
+        columns = [description[0] for description in cursor.description]
+        return [dict(zip(columns, state)) for state in states]
+
+
 async def get_current_state(
     message: Message | None = None,
     tg_id: int | None = None
@@ -130,18 +188,27 @@ async def get_current_state(
     return None
 
 
-async def get_state_by_id(state_id: int) -> dict | None:
+async def get_state_by_id(state_id: int, tg_id: int | None = None) -> dict | None:
     async with aiosqlite.connect(USERS_DB_PATH) as conn:
-        cursor = await conn.execute("""
+        query = """
             SELECT u.tg_id, s.name, ts.tag, ts.start_time, 
             ts.end_time, ts.duration_seconds, ts.mood
             FROM time_sessions ts
             JOIN users u ON ts.user_id = u.id
             JOIN states s ON ts.state_id = s.id 
             WHERE ts.id = ?
-        """, (state_id, )
-        )
+        """
+        params = (state_id,)
+        
+        if tg_id is not None:
+            query += " AND u.tg_id = ?"
+            params = (state_id, tg_id)
+        
+        cursor = await conn.execute(query, params)
         res = await cursor.fetchone()
+
+        if not res:
+            return None
 
         columns = [description[0] for description in cursor.description]
         
@@ -211,10 +278,13 @@ async def end_session(user_id: int, conn) -> None:
         return
 
     start_time_str = result[0]
-    start_time = date.to_datetime(start_time_str)
     end_time = date.get_now()
 
-    duration_seconds = int((end_time - start_time).total_seconds())
+    duration_seconds = date.calculate_duration_seconds(
+        start_time=start_time_str,
+        end_time=end_time,
+        duration_seconds=None
+    )
 
     await conn.execute("""
         UPDATE time_sessions 
@@ -315,7 +385,16 @@ async def fix_states(
     return True
 
 
-async def update_state_info(state_id: int, info: dict) -> None:
+async def update_state_info(state_id: int, info: dict, tg_id: int | None = None) -> bool:
+    # Проверка существования и принадлежности состояния
+    state = await get_state_by_id(state_id, tg_id)
+    if not state:
+        return False
+    
+    # Валидация mood
+    if 'mood' in info and (info['mood'] is not None and (info['mood'] < 1 or info['mood'] > 5)):
+        return False
+    
     async with aiosqlite.connect(USERS_DB_PATH) as conn:
         if info.get('state_name'):
             await conn.execute("""
@@ -324,7 +403,7 @@ async def update_state_info(state_id: int, info: dict) -> None:
                 WHERE id = ?
             """, (info['state_name'], state_id))
 
-        if info.get('tag'):
+        if 'tag' in info:
             await conn.execute("""
                 UPDATE time_sessions SET tag = ? WHERE id = ?
             """, (info['tag'], state_id))
@@ -335,4 +414,5 @@ async def update_state_info(state_id: int, info: dict) -> None:
             """, (info['mood'], state_id))
 
         await conn.commit()
+    return True
 

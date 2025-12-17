@@ -1,3 +1,6 @@
+from typing import Any
+
+
 from utils import date
 from datetime import datetime, timedelta
 
@@ -25,29 +28,21 @@ def old_format_states_history(states: list[dict]) -> str:
 
     for i, state in enumerate(states):
         state_name = state["state_name"]
-        start_time = datetime.strftime(
-            date.to_datetime(state['start_time']),
-            "%H:%M"
-        )
+        start_time = date.format_time_hhmm(state['start_time'])
         if state['end_time']:
-            end_time = datetime.strftime(
-                date.to_datetime(state['end_time']),
-                "%H:%M"
-            )
+            end_time = date.format_time_hhmm(state['end_time'])
         else:
             end_time = "now"
 
-        duration_seconds = state.get("duration_seconds", 0)
+        duration_seconds = date.calculate_duration_seconds(
+            start_time=state['start_time'],
+            end_time=state.get('end_time'),
+            duration_seconds=state.get("duration_seconds")
+        )
         mood = state.get("mood")
         tag = state.get("tag", "")
 
         if duration_seconds:
-            # hours = duration_seconds // 3600
-            # minutes = (duration_seconds // 60) % 60
-            # seconds = duration_seconds % 60
-            # duration_str = f"{f'{str(hours)}ч ' if hours >= 1 else ''}" \
-            #                f"{f'{str(minutes)}м ' if minutes >= 1 else ''}" \
-            #                f"{f'{str(seconds)}с' if seconds >= 1 else ''}"
             duration_str = date.format_time(duration_seconds)
         else:
             duration_str = "Активно"
@@ -76,30 +71,21 @@ def format_states_history(states: list[dict]) -> str:
 
     for i, state in enumerate(states):
         state_name = state["state_name"]
-        start_time = datetime.strftime(
-            date.to_datetime(state['start_time']),
-            "%H:%M"
-        )
+        start_time = date.format_time_hhmm(state['start_time'])
         if state['end_time']:
-            end_time = datetime.strftime(
-                date.to_datetime(state['end_time']),
-                "%H:%M"
-            )
+            end_time = date.format_time_hhmm(state['end_time'])
         else:
             end_time = "now"
 
-        duration_seconds = state.get("duration_seconds", 0)
+        duration_seconds = date.calculate_duration_seconds(
+            start_time=state['start_time'],
+            end_time=state.get('end_time'),
+            duration_seconds=state.get("duration_seconds")
+        )
         mood = state.get("mood")
         tag = state.get("tag", "")
 
-        if duration_seconds:
-            duration_str = date.format_time(duration_seconds)
-        else:
-            duration_str = date.format_time(
-                int((date.get_now() - date.to_datetime(
-                    state['start_time']
-                )).total_seconds())
-            )
+        duration_str = date.format_time(duration_seconds)
 
         mood_str = "| " + ("*" * mood if mood else "#")
 
@@ -204,8 +190,8 @@ def format_fix_cmd(
 
 
 def format_state_info(state_info: dict) -> str:
-    start_time = datetime.strftime(state_info['start_time'], '%H:%M')
-    end_time = datetime.strftime(state_info['end_time'], '%H:%M')
+    start_time = date.format_time_hhmm(state_info['start_time'])
+    end_time = date.format_time_hhmm(state_info['end_time'])
     duration = state_info['duration_seconds']
 
     duration_dict = {
@@ -267,11 +253,12 @@ COMMON = {
     "state_mood_changed": "✅ <b>Оценка состояния была успешно изменена!</b>",
     "choose_new_state": "ℹ️ Выберите новое состояние:",
     "enter_new_tag": "ℹ️ Введите новый тег:",
-    "rate_state": "⭐ <b>Оцените состояние:</b>"
+    "rate_state": "⭐ <b>Оцените состояние:</b>",
 }
 
 SUCCESS = {
     'state_change': "✅ <b>Состояние было изменено!</b>",
+    "state_tag_deleted": "✅ <b>Тег состояния был успешно удален!</b>",
     'state_rated': "⭐ <b>Оценка сохранена!</b>"
 }
 
