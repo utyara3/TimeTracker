@@ -347,12 +347,13 @@ async def change_state_tag(message: Message, state: FSMContext) -> None:
         )
     except Exception as e:
         logger.error(f"Ошибка в change_state_tag: {e}")
-        await state.clear()
         await message.answer("Ошибка обработки запроса")
+    
+    await state.clear()
 
 
 @router.callback_query(F.data.startswith("delete_tag"))
-async def delete_tag(callback: CallbackQuery) -> None:
+async def delete_tag(callback: CallbackQuery, state: FSMContext) -> None:
     try:
         parts = callback.data.split(":")
         if len(parts) < 2:
@@ -387,6 +388,8 @@ async def delete_tag(callback: CallbackQuery) -> None:
     except (ValueError, IndexError) as e:
         logger.error(f"Ошибка при удалении тега: {e}, data={callback.data}")
         await callback.answer("Ошибка обработки запроса")
+
+    await state.clear()
 
 
 @router.callback_query(F.data.startswith("change_state_mood"))
