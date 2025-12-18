@@ -149,12 +149,15 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
         longest_session = individual_sessions.loc[individual_sessions['duration'].idxmax()].to_dict()
         shortest_session = individual_sessions.loc[individual_sessions['duration'].idxmin()].to_dict()
 
-        # Productivity calculation
+        # Productivity calculation: (study + work) / chill
         productive_states = ['work', 'study']
         productivity_time = no_sleep_data[
             no_sleep_data['state_name'].isin(productive_states)
         ]['duration'].sum()
-        productivity = int((productivity_time / total_time_no_sleep) * 100) if total_time_no_sleep > 0 else 0
+        chill_time = no_sleep_data[
+            no_sleep_data['state_name'] == 'chill'
+        ]['duration'].sum()
+        productivity = int((productivity_time / chill_time) * 100) if chill_time > 0 else 0
 
         # Average session time
         average_session_time = date.format_time(
