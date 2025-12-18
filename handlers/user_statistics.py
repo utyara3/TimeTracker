@@ -157,7 +157,7 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
         chill_time = no_sleep_data[
             no_sleep_data['state_name'] == 'chill'
         ]['duration'].sum()
-        productivity = int((productivity_time / chill_time) * 100) if chill_time > 0 else 0
+        productivity = int((productivity_time / (productivity_time + chill_time)) * 100) if chill_time > 0 else 0
 
         # Average session time
         average_session_time = date.format_time(
