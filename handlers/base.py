@@ -256,7 +256,6 @@ async def rate_time_session(callback_query: CallbackQuery):
         
         time_session = int(parts[1])
         mood = int(parts[2])
-        print("MOOD:", mood)
         
         # Валидация mood
         if mood < 1 or mood > 5:
