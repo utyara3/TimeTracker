@@ -124,7 +124,7 @@ async def back_to_states_list(callback: CallbackQuery) -> None:
 
 
 @router.callback_query(F.data.startswith("choose_state"))
-async def state_info(callback: CallbackQuery) -> None:
+async def state_info(callback: CallbackQuery, state: FSMContext) -> None:
     try:
         parts = callback.data.split(":")
         if len(parts) < 2:
@@ -190,6 +190,8 @@ async def state_info(callback: CallbackQuery) -> None:
     except (ValueError, IndexError) as e:
         logger.error(f"Ошибка в state_info: {e}, data={callback.data}")
         await callback.answer("Ошибка обработки запроса")
+
+    await state.clear()
 
 
 @router.callback_query(F.data.startswith("change_state_info"))
@@ -316,8 +318,6 @@ async def change_state_tag(message: Message, state: FSMContext) -> None:
             await message.answer("Ошибка: данные сессии потеряны")
             await state.clear()
             return
-        
-        tag = message.text.lower()
 
         result = await db.update_state_info(
             state_id=state_id, 
