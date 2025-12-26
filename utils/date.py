@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 # BOT_TIMEZONE = timezone(timedelta(hours=3))
@@ -80,3 +80,24 @@ def format_time_hhmm(time: datetime | str) -> str:
         time = to_datetime(time)
     
     return datetime.strftime(time, "%H:%M")
+
+def resolve_hhmm_to_datetime(
+    hhmm: str, 
+    now: datetime, 
+    session_start: datetime
+) -> datetime | None:
+    user_time = datetime.strptime(hhmm.strip(), "%H:%M").time()
+    
+    today = now.date()
+    yesterday = today - timedelta(days=1)
+    
+    candidates = [
+        datetime.combine(yesterday, user_time),
+        datetime.combine(today, user_time)
+    ]
+    
+    for cand in reversed(candidates):  # проверяем сначала сегодня, потом вчера
+        if session_start <= cand <= now:
+            return cand
+    
+    return None  # ни один кандидат не подошёл

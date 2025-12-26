@@ -1,6 +1,3 @@
-from typing import Any
-
-
 from utils import date
 from datetime import datetime, timedelta
 
@@ -14,8 +11,8 @@ def format_switch_state_message(
 ) -> str:
     return f"""✨ <b>Смена состояния успешна!</b>
 
-▫️ <b>Было:</b> <code>{prev_state}</code> <code>{prev_tag if prev_tag else ''}</code>
-▫️ <b>Стало:</b> <code>{new_state}</code> <code>{new_tag if new_tag else ''}</code>
+<b>Было:</b> {DEFAULT_STATES[prev_state][1]} <code>{prev_state}</code> <code>{prev_tag if prev_tag else ''}</code>
+<b>Стало:</b> {DEFAULT_STATES[new_state][1]} <code>{new_state}</code> <code>{new_tag if new_tag else ''}</code>
 
 🕐 <b>Интервал:</b> <i>{delta_time}</i>"""
 
@@ -183,9 +180,8 @@ def format_fix_cmd(
 ):
     return f"""✨ <b>Состояние было успешно разеделено!</b>
     
-<b>Было:</b> <code>{state_name}</code> <code>{state_start_time} - сейчас</code>
-<b>Стало:</b> <code>{new_state}</code> <code>{prev_state_end_time} - сейчас</code>
-- <code>{state_name}</code> <code>{state_start_time} - {prev_state_end_time}</code>
+<b>Текущее:</b> <code>{new_state}</code> <code>{prev_state_end_time} - сейчас</code>
+<b>Прошлое:</b> <code>{state_name}</code> <code>{state_start_time} - {prev_state_end_time}</code>
 """
 
 
@@ -221,7 +217,7 @@ DEFAULT_STATES = {
     "chill": ["отдых", "🏖"],
     "sleep": ["сон", "💤"],
     "wait": ["ожидание", "🕰"],
-    "other": ["другое", "💊"],
+    "other": ["другое", "📌"],
     "stop": ["не учитывать", "⏹️"]
 }
 

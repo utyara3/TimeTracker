@@ -9,8 +9,6 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from datetime import datetime, timedelta
 from collections import Counter
 
-from pydantic.networks import MongoDsn
-
 from data import messages as msg
 import keyboards.reply as reply_kb
 import keyboards.inline as inline_kb
@@ -59,7 +57,7 @@ async def help_cmd(message: Message):
 async def user_tags(message: Message) -> None:
     tags = await db.get_user_tags(message=message)
 
-    if len(tags) == 0:
+    if tags is None or len(tags) == 0:
         await message.answer(msg.FAILURE['have_not_tags'])
         return
 
@@ -91,14 +89,25 @@ async def fix_cmd(message: Message, command: CommandObject, state: FSMContext) -
 
     parts = args.split()
 
-    time_parts = []
+    time_parts = {}
     state_and_tag = []
 
-    for part in parts:
+    state_and_tag = []
+    i = 0
+    while i < len(parts):
+        part = parts[i]
         if re.search(r'\d+\s*[hmчм]', part):
-            time_parts.append(part)
+            if 'duration' not in time_parts:
+                time_parts['duration'] = []
+            time_parts['duration'].append(part)
+            i += 1
+        elif re.search(r'\d+:\d+', part):
+            if 'start_time' not in time_parts:
+                time_parts['start_time'] = []
+            time_parts['start_time'].append(part)
+            i += 1
         else:
-            state_and_tag = parts[len(time_parts):]
+            state_and_tag = parts[i:]
             break
 
     if not time_parts or not state_and_tag:
@@ -113,8 +122,26 @@ async def fix_cmd(message: Message, command: CommandObject, state: FSMContext) -
     current_state = states[0]
     state_start_time = date.to_datetime(current_state['start_time'])
 
-    dur_sec_args = date.duration_seconds_from_string(' '.join(time_parts))
+    if time_parts.get('start_time', ''):
+        offset = timedelta(seconds=59)
+        hhmm_str = ''.join(time_parts['start_time'])
+        start_time_candidate = date.resolve_hhmm_to_datetime(
+            hhmm_str,
+            now=date.get_now(),
+            session_start=state_start_time
+        )
+        if start_time_candidate is None or start_time_candidate <= state_start_time + offset:
+            await message.answer(msg.FAILURE['wrong_args'])
+            return
+
+        dur_sec_args = (date.get_now() - start_time_candidate).total_seconds()
+    else:
+        dur_sec_args = date.duration_seconds_from_string(
+            ' '.join(time_parts['duration'])
+        )
+
     total_duration = (date.get_now() - state_start_time).total_seconds()
+    
     if dur_sec_args > total_duration:
         await message.answer(msg.FAILURE['fix_wrong_time'])
         return
