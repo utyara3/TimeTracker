@@ -321,7 +321,7 @@ async def change_state_tag(message: Message, state: FSMContext) -> None:
 
         result = await db.update_state_info(
             state_id=state_id, 
-            info={"tag": tag},
+            info={"tag": message.text},
             tg_id=message.from_user.id
         )
         
