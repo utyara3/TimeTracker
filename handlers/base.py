@@ -1,10 +1,9 @@
 import re
 
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery
 from aiogram.filters import Command, CommandObject
 from aiogram.fsm.context import FSMContext
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from datetime import datetime, timedelta
 from collections import Counter
@@ -16,7 +15,6 @@ import keyboards.inline as inline_kb
 from utils import date
 from utils import bot_logging as bot_log
 from utils.base_utils import answer_or_edit
-from utils.states import ChangeStateTag
 
 from database import core as db
 
@@ -199,7 +197,7 @@ async def change_state_cmd(message: Message, state: FSMContext):
     if selected_state.startswith('/'):
         selected_state = selected_state[1:]
 
-    switch = await db.switch_state(message=message, new_state=selected_state, tag=tag)
+    switch: dict = await db.switch_state(message=message, new_state=selected_state, tag=tag)
 
     prev_state = switch['previous_state']
     start_time = switch['start_time']

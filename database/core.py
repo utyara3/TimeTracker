@@ -298,13 +298,13 @@ async def switch_state(
     tg_id: int | None = None,
     new_state: str = "other",
     tag: str = ""
-) -> dict[str, str] | bool:
+) -> dict[str, str]:
     if message is not None:
         tg_id = message.from_user.id
 
-    user_id = await get_user_id_by_tg_id(tg_id=tg_id)
-    if not user_id:
-        return False
+    user_id: int = await get_user_id_by_tg_id(tg_id=tg_id)
+    #if not user_id:
+    #    return False
 
     prev_state_data = await get_current_state(tg_id=tg_id)
     prev_state_name = prev_state_data.get('state_name', '') if prev_state_data else None
@@ -313,8 +313,8 @@ async def switch_state(
     prev_state_time_session_id = prev_state_data.get('id', '') if prev_state_data else None
 
     state_id = await get_state_id_by_name(state_name=new_state)
-    if not state_id:
-        return False
+    #if not state_id:
+    #    return False
 
     ret_dict = {
         "previous_state": prev_state_name,

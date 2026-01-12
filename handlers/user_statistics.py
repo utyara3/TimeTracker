@@ -13,6 +13,7 @@ import keyboards.inline as inline_kb
 from utils import date
 from utils import bot_logging as bot_log
 from utils.base_utils import answer_or_edit
+from utils import statistics as ustats
 
 from database import core as db
 
@@ -136,8 +137,6 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
     if not no_sleep_data.empty:
         # State totals (without sleep)
         state_durations_no_sleep = no_sleep_data.groupby('state_name')['duration'].sum().to_dict()
-        total_time_no_sleep = no_sleep_data['duration'].sum()
-
         # Longest and shortest total states
         longest_total_state = max(state_durations_no_sleep.items(), key=lambda x: x[1])
         shortest_total_state = min(state_durations_no_sleep.items(), key=lambda x: x[1])
@@ -199,3 +198,33 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
         },  # Without sleep
         "average_session": average_session_time  # Without sleep
     }
+
+
+@router.message(Command("predict"))
+async def predict_user_next_state(message: Message) -> None:
+    states: list = await db.get_user_states(tg_obj=message)
+    
+    month_days = set(
+        [date.to_datetime(state['start_time']).date().day for state in states]
+    )
+    
+    if len(month_days) <= 7:
+        await message.answer(msg.FAILURE['few_days'])
+        return
+
+    current_user_state = states[0]['state_name']
+
+    df = pd.DataFrame(states)
+    df['start_time'] = pd.to_datetime(df['start_time']) 
+    df['weekday'] = df['start_time'].dt.weekday
+
+    today = pd.to_datetime(date.get_now()).weekday()
+    
+    transitions_by_day = df.groupby('weekday').apply(ustats.build_transition_matrix, include_groups=False)
+
+    next_state_probabilities = transitions_by_day.loc[today].loc[current_user_state]
+    next_state = next_state_probabilities.idxmax()
+    probability = round(next_state_probabilities.max()*100, 2)
+
+    await message.answer(msg.format_predict_next_state(next_state, probability))
+
