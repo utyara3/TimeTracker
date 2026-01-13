@@ -211,10 +211,16 @@ def format_state_info(state_info: dict) -> str:
     return ret
 
 
-def format_predict_next_state(next_state: str, probability: float) -> str:
-    return f"""✨ Предсказываю на основе собранных данных...
+def format_predict_next_state(next_state: list) -> str:
+    ret_str = "✨ Предсказываю на основе собранных данных...\n"
+    ret_str += f"\n📍 Скорее всего, вы перейдете в " \
+        f"{DEFAULT_STATES[next_state[0][0]][1]} <code>{next_state[0][0]}</code>" \
+        f"(<b><i>{next_state[0][1]}%</i></b>)"
+    if len(next_state) > 1:
+        ret_str += f"\n💡 Также возможно: {DEFAULT_STATES[next_state[1][0]][1]} " \
+            f"<code>{next_state[1][0]}</code> (<b><i>{next_state[1][1]}%</i></b>)"
 
-📊 С вероятностью <b><i>{probability}%</i></b> следующее состояние будет {DEFAULT_STATES[next_state][1]} <code>{next_state}</code>"""
+    return ret_str
 
 
 

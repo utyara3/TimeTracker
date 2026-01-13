@@ -218,13 +218,24 @@ async def predict_user_next_state(message: Message) -> None:
     df['start_time'] = pd.to_datetime(df['start_time']) 
     df['weekday'] = df['start_time'].dt.weekday
 
+    df['time_bin'] = df['start_time'].dt.hour // 4
+
     today = pd.to_datetime(date.get_now()).weekday()
+    current_time_bin = pd.to_datetime(states[0]['start_time']).hour // 4
     
-    transitions_by_day = df.groupby('weekday').apply(ustats.build_transition_matrix, include_groups=False)
+    transitions_by_day = df.groupby(['weekday', 'time_bin']).apply(ustats.build_transition_matrix, include_groups=False)
 
-    next_state_probabilities = transitions_by_day.loc[today].loc[current_user_state]
-    next_state = next_state_probabilities.idxmax()
-    probability = round(next_state_probabilities.max()*100, 2)
+    next_state_probabilities = transitions_by_day.loc[
+        (today, current_time_bin, current_user_state)
+    ]
 
-    await message.answer(msg.format_predict_next_state(next_state, probability))
+    sorted_probs = next_state_probabilities.sort_values(ascending=False) 
+    next_state = [(sorted_probs.index[0], round(sorted_probs.iloc[0]*100, 2))]
+
+    if len(sorted_probs) > 1:
+        if sorted_probs.iloc[1] > 0.01:
+            next_state.append((sorted_probs.index[1], round(sorted_probs.iloc[1]*100, 2)))
+
+
+    await message.answer(msg.format_predict_next_state(next_state))
 
