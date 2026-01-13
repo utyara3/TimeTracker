@@ -212,30 +212,67 @@ async def predict_user_next_state(message: Message) -> None:
         await message.answer(msg.FAILURE['few_days'])
         return
 
-    current_user_state = states[0]['state_name']
-
-    df = pd.DataFrame(states)
-    df['start_time'] = pd.to_datetime(df['start_time']) 
-    df['weekday'] = df['start_time'].dt.weekday
-
-    df['time_bin'] = df['start_time'].dt.hour // 4
-
-    today = pd.to_datetime(date.get_now()).weekday()
-    current_time_bin = pd.to_datetime(states[0]['start_time']).hour // 4
+    all_sessions = states.copy()
     
+    now_str = date.get_now().strftime("%Y-%m-%d %H:%M:%S")
+    for session in all_sessions:
+        if session['end_time'] is None:
+            session['end_time'] = now_str
+    
+    df = pd.DataFrame(all_sessions)
+    df['start_time'] = pd.to_datetime(df['start_time'])
+    df['end_time'] = pd.to_datetime(df['end_time'])
+    df = df.sort_values('start_time')
+    
+    df['prev_state'] = df['state_name'].shift(1)
+    df = df[df['state_name'] != df['prev_state']].copy()
+    
+    df['next_state'] = df['state_name'].shift(-1)
+    df = df.dropna(subset=['next_state'])
+    
+    df['weekday'] = df['start_time'].dt.weekday
+    df['time_bin'] = df['start_time'].dt.hour // 4
+    
+    current_session = all_sessions[0]  
+    current_state = current_session['state_name']
+    current_start = pd.to_datetime(current_session['start_time'])
+    today = current_start.weekday()
+    current_time_bin = current_start.hour // 4
     transitions_by_day = df.groupby(['weekday', 'time_bin']).apply(ustats.build_transition_matrix, include_groups=False)
+    try:
+        # Пробуем предсказать по паттернам недели и дневным бинам
+        next_state_probabilities = transitions_by_day.loc[
+            (today, current_time_bin, current_state)
+        ]
+        predict_by = "День недели и время начала сессии"
+    except KeyError:
+        try:
+            # У пользователя недостаточное разнообразие сессий, пробуем предсказать только по паттернам недели
+            transitions_by_weekday = df.groupby('weekday').apply(ustats.build_transition_matrix, include_groups=False)
+            next_state_probabilities = transitions_by_weekday.loc[(today, current_state)]
+            
+            predict_by = "День недели"
 
-    next_state_probabilities = transitions_by_day.loc[
-        (today, current_time_bin, current_user_state)
-    ]
+        except KeyError:
+            try:
+                # У пользователя еще меньше данных, в теории этот блок не должен выполниться, но на всякий случай лучше тоже обработать. Смотрим глобально по состоянию
+                global_transitions = ustats.build_transition_matrix(df)
+                next_state_probabilities = global_transitions.loc[current_state]
+                
+                predict_by = "Глобальные переходы состояний"
+
+            except KeyError:
+                await message.answer("У вас слишком мало состояний, попробуйте позже...")
+                return
+
 
     sorted_probs = next_state_probabilities.sort_values(ascending=False) 
     next_state = [(sorted_probs.index[0], round(sorted_probs.iloc[0]*100, 2))]
 
     if len(sorted_probs) > 1:
-        if sorted_probs.iloc[1] > 0.01:
-            next_state.append((sorted_probs.index[1], round(sorted_probs.iloc[1]*100, 2)))
+        for prob in range(1, len(sorted_probs)-1):
+            if sorted_probs.iloc[prob] > 0.01:
+                next_state.append((sorted_probs.index[prob], round(sorted_probs.iloc[prob]*100, 2)))
 
-
-    await message.answer(msg.format_predict_next_state(next_state))
+    await message.answer(msg.format_predict_next_state(next_state, predict_by))
 
