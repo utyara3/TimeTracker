@@ -60,10 +60,19 @@ def old_format_states_history(states: list[dict]) -> str:
     return ret_str
 
 
-def format_states_history(states: list[dict]) -> str:
+def format_states_history(
+    states: list[dict],
+    target_day: datetime.date | None = None
+) -> str:
     if not states:
         return "📭 История состояний за сегодня пуста"
-    
+
+    if target_day is None:
+        target_day = date.to_datetime(states[0]['start_time']).date()
+
+    is_today = target_day == date.get_now().date()
+    day_end_label = date.format_time_hhmm(date.day_boundary(target_day))
+
     ret_str = ""
 
     for i, state in enumerate(states):
@@ -71,13 +80,17 @@ def format_states_history(states: list[dict]) -> str:
         start_time = date.format_time_hhmm(state['start_time'])
         if state['end_time']:
             end_time = date.format_time_hhmm(state['end_time'])
-        else:
+        elif is_today:
             end_time = "now"
+        else:
+            # незакрытая сессия на прошедшем дне — обрезана по границе суток
+            end_time = day_end_label
 
-        duration_seconds = date.calculate_duration_seconds(
+        duration_seconds = date.day_scoped_duration_seconds(
             start_time=state['start_time'],
             end_time=state.get('end_time'),
-            duration_seconds=state.get("duration_seconds")
+            duration_seconds=state.get("duration_seconds"),
+            target_day=target_day
         )
         mood = state.get("mood")
         tag = state.get("tag", "")

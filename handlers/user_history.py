@@ -48,7 +48,7 @@ async def send_day_history(
 
     await answer_or_edit(
         tg_obj,
-        msg.format_states_history(states=states),
+        msg.format_states_history(states=states, target_day=target_day),
         keyboard=keyboard
     )
 
@@ -90,7 +90,8 @@ async def choose_state_to_change(
         start_time = date.to_datetime(state['start_time'])
         start_time_str = date.format_time_hhmm(start_time)
         end_time = date.format_time_hhmm(
-            date.to_datetime(state['end_time']) if state['end_time'] else date.get_now()
+            date.to_datetime(state['end_time']) if state['end_time']
+            else min(date.get_now(), date.day_boundary(day))
         )
 
         builder.row(
@@ -145,16 +146,23 @@ async def state_info(callback: CallbackQuery, state: FSMContext) -> None:
             return
         
         state_info['start_time'] = date.to_datetime(state_info['start_time'])
+        start_day = state_info['start_time'].date()
+
+        state_info['duration_seconds'] = date.day_scoped_duration_seconds(
+            start_time=state_info['start_time'],
+            end_time=state_info['end_time'],
+            duration_seconds=state_info.get('duration_seconds'),
+            target_day=start_day
+        )
+
         if state_info['end_time']:
             state_info['end_time'] = date.to_datetime(state_info['end_time'])
         else:
-            state_info['end_time'] = date.get_now()
-
-        state_info['duration_seconds'] = date.calculate_duration_seconds(
-            start_time=state_info['start_time'],
-            end_time=state_info['end_time'],
-            duration_seconds=state_info.get('duration_seconds')
-        )
+            # незакрытая сессия — обрезается по границе суток её дня
+            state_info['end_time'] = min(
+                date.get_now(),
+                date.day_boundary(start_day)
+            )
         
         text = msg.format_state_info(state_info)
         
