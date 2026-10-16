@@ -65,7 +65,7 @@ def format_states_history(
     target_day: datetime.date | None = None
 ) -> str:
     if not states:
-        return "📭 История состояний за сегодня пуста"
+        return "📭 История состояний за этот день пуста"
 
     if target_day is None:
         target_day = date.to_datetime(states[0]['start_time']).date()
@@ -73,9 +73,14 @@ def format_states_history(
     is_today = target_day == date.get_now().date()
     day_end_label = date.format_time_hhmm(date.day_boundary(target_day))
 
-    ret_str = ""
+    day_label = "сегодня" if is_today else target_day.strftime("%d.%m.%Y")
+    weekday = date.WEEKDAY_NAMES[target_day.weekday()]
 
-    for i, state in enumerate(states):
+    ret_str = f"🗂 <b>История за {day_label} ({weekday})</b>\n\n"
+
+    # reversed(): в БД порядок от новой сессии к старой,
+    # а история дня рассказывается с первой сессии до последней
+    for state in reversed(states):
         state_name = state["state_name"]
         start_time = date.format_time_hhmm(state['start_time'])
         if state['end_time']:
@@ -125,6 +130,11 @@ def format_month_calendar(info: str, year: int, month: int) -> str:
 
 def format_empty_day(day: datetime.date) -> str:
     return f"📭 <b>Нет состояний за {day.strftime('%d.%m.%Y')}.</b>"
+
+
+def format_choose_state(day: datetime.date) -> str:
+    weekday = date.WEEKDAY_NAMES[day.weekday()]
+    return f"ℹ️ Выберите состояние за {day.strftime('%d.%m.%Y')} ({weekday}):"
 
 
 def format_commands() -> str:
