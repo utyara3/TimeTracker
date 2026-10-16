@@ -12,7 +12,7 @@ from aiogram.enums import ParseMode
 
 from config import BOT_TOKEN
 from database import core as db
-from handlers import base, user_history, user_statistics
+from handlers import base, calendar_view, user_history, user_statistics
 from utils.bot_logging import get_logger, setup_logging
 
 setup_logging(name="TimeTracker", log_file="bot.log", level=logging.INFO)
@@ -34,6 +34,7 @@ async def main() -> None:
         dp.include_router(base.router)
         dp.include_router(user_history.router)
         dp.include_router(user_statistics.router)
+        dp.include_router(calendar_view.router)
 
         # await bot.delete_webhook(drop_pending_updates=True)
         main_logger.info("Бот запущен")
