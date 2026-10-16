@@ -35,11 +35,15 @@ async def send_day_history(
 ) -> None:
     states = await db.get_user_states_by_date(tg_obj=tg_obj, target_date=target_day)
 
-    keyboard_builder = inline_kb.pagination_date_kb("date_history", target_day)
+    keyboard_builder = inline_kb.pagination_date_kb(
+        "date_history",
+        target_day,
+        show_edit_button=bool(states)
+    )
     keyboard = keyboard_builder.as_markup()
 
     if not states:
-        await answer_or_edit(tg_obj, msg.FAILURE['no_states_today'], keyboard=keyboard)
+        await answer_or_edit(tg_obj, msg.format_empty_day(target_day), keyboard=keyboard)
         return
 
     await answer_or_edit(
