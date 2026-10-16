@@ -2,6 +2,19 @@ import re
 from datetime import datetime, timedelta
 
 
+MONTH_NAMES = [
+    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+]
+
+WEEKDAY_NAMES = ["пн", "вт", "ср", "чт", "пт", "сб", "вс"]
+
+
+def shift_month(year: int, month: int, delta: int) -> tuple[int, int]:
+    month_index = year * 12 + (month - 1) + delta
+    return month_index // 12, month_index % 12 + 1
+
+
 # BOT_TIMEZONE = timezone(timedelta(hours=3))
 
 def get_now():
