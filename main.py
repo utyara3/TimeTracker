@@ -7,23 +7,17 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
-from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
-from aiogram_sqlite_storage.sqlitestore import SQLStorage
+from aiogram.enums import ParseMode
 
-from config import BOT_TOKEN, STATES_DB_PATH
-from handlers import user_history, user_statistics, base
-
+from config import BOT_TOKEN
 from database import core as db
-from utils.bot_logging import setup_logging, get_logger
+from handlers import base, user_history, user_statistics
+from utils.bot_logging import get_logger, setup_logging
 
-setup_logging(
-    name='TimeTracker',
-    log_file='bot.log',
-    level=logging.INFO
-)
+setup_logging(name="TimeTracker", log_file="bot.log", level=logging.INFO)
 
-main_logger = get_logger('main')
+main_logger = get_logger("main")
 
 
 async def main() -> None:
@@ -31,17 +25,12 @@ async def main() -> None:
         await db.init_db()
         main_logger.info("Базы инициализированы")
 
-        storage = SQLStorage(STATES_DB_PATH)
-
         bot = Bot(
-            token=BOT_TOKEN,
-            default=DefaultBotProperties(
-                parse_mode=ParseMode.HTML
-            )
+            token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML)
         )
-        dp = Dispatcher(storage=storage)
+        dp = Dispatcher()
 
-        #dp.include_router(basic_commands.router)
+        # dp.include_router(basic_commands.router)
         dp.include_router(base.router)
         dp.include_router(user_history.router)
         dp.include_router(user_statistics.router)
@@ -54,9 +43,9 @@ async def main() -> None:
         raise
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
         main_logger.info("Bot was interrupted.")
-        print('Bot was interrupted.')
+        print("Bot was interrupted.")

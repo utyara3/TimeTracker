@@ -4,4 +4,3 @@ aiogram
 aiosqlite
 python-dotenv
 pandas
-aiogram-sqlite-storage
