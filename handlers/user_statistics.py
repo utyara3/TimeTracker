@@ -29,16 +29,20 @@ async def today_statistics(message: Message):
 
 @router.callback_query(F.data.startswith("date_statistics"))
 async def date_statistics(callback: CallbackQuery):
-    parts = callback.data.split(":")
-    data = parts[1]
-    
-    # no handle date_statistics:date:edit (current day button that using in user_history)
-    if len(parts) == 2:
-        target_date = datetime.strptime(data,"%Y-%m-%d").date()
+    try:
+        parts = callback.data.split(":")
+        if len(parts) < 2:
+            logger.error(f"Неверный формат callback_data: {callback.data}")
+            await callback.answer("Ошибка: неверный формат данных")
+            return
+
+        target_date = datetime.strptime(parts[1], "%Y-%m-%d").date()
 
         await send_day_statistics(callback, target_date)
-
-    await callback.answer()
+        await callback.answer()
+    except (ValueError, IndexError) as e:
+        logger.error(f"Ошибка парсинга callback_data: {callback.data}, {e}")
+        await callback.answer("Ошибка обработки запроса")
 
 
 async def send_day_statistics(
@@ -68,7 +72,7 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
     user_data = await db.get_user_states(tg_id=user_id)
 
     if not user_data:
-        return {"status": "bad", "message": msg.FAILURE['no_states_today']}
+        return {"status": "bad", "message": msg.format_empty_day(target_day)}
 
     # Convert to DataFrame
     df = pd.DataFrame(user_data)
@@ -79,7 +83,7 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
     target_day_data = df[df['start_date'] == target_day].copy()
 
     if target_day_data.empty:
-        return {"status": "bad", "message": "📊 Нет завершенных состояний"}
+        return {"status": "bad", "message": msg.format_empty_day(target_day)}
 
     state_count = len(target_day_data)
 
