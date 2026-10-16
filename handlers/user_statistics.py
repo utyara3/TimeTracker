@@ -89,24 +89,19 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
 
     # Get current state data (first row, which is the most recent)
     current_state_data = target_day_data.iloc[0]
-    start_time = date.to_datetime(current_state_data['start_time'])
-    
-    end_time_val = current_state_data['end_time']
-    if pd.notna(end_time_val) and end_time_val:
-        end_time = date.to_datetime(end_time_val)
-    elif start_time.date() == date.get_now().date():
-        end_time = date.get_now()
-    else:
-        end_time = datetime.combine(
-            target_day,
-            datetime.max.time()
-        )
 
-    delta = end_time - start_time
+    # Та же логика длительности, что и в истории:
+    # сохраненный duration_seconds > end - start; незакрытая обрезается по дню
+    last_duration = date.day_scoped_duration_seconds(
+        start_time=current_state_data['start_time'],
+        end_time=current_state_data['end_time'] if pd.notna(current_state_data['end_time']) else None,
+        duration_seconds=int(current_state_data['duration_seconds']) if pd.notna(current_state_data['duration_seconds']) else None,
+        target_day=target_day
+    )
     delta_dict = {
-        'hours': delta.seconds // 3600,
-        'minutes': (delta.seconds // 60) % 60,
-        'seconds': delta.seconds % 60
+        'hours': last_duration // 3600,
+        'minutes': (last_duration // 60) % 60,
+        'seconds': last_duration % 60
     }
 
     # Create chronology (reverse order for display)
@@ -114,10 +109,11 @@ async def states_statistics(user_id: int, target_day: datetime.date) -> dict:
 
     # Calculate durations
     def calculate_duration(row):
-        return date.calculate_duration_seconds(
+        return date.day_scoped_duration_seconds(
             start_time=row['start_time'],
             end_time=row.get('end_time') if pd.notna(row.get('end_time')) else None,
-            duration_seconds=int(row['duration_seconds']) if pd.notna(row['duration_seconds']) else None
+            duration_seconds=int(row['duration_seconds']) if pd.notna(row['duration_seconds']) else None,
+            target_day=target_day
         )
     
     target_day_data['duration'] = target_day_data.apply(calculate_duration, axis=1)
