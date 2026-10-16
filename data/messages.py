@@ -94,6 +94,26 @@ def format_states_history(states: list[dict]) -> str:
     return ret_str
 
 
+MONTH_CALENDAR_TITLES = {
+    "date_history": "🗂 Выберите день, чтобы посмотреть историю состояний",
+    "date_statistics": "📊 Выберите день, чтобы посмотреть статистику",
+}
+
+
+def format_month_calendar(info: str, year: int, month: int) -> str:
+    title = MONTH_CALENDAR_TITLES.get(info, "📅 Выберите день")
+    month_name = date.MONTH_NAMES[month - 1]
+
+    return f"""🗓 <b>{month_name} {year}</b>
+
+{title}
+📍 Дни с записями отмечены •"""
+
+
+def format_empty_day(day: datetime.date) -> str:
+    return f"📭 <b>Нет состояний за {day.strftime('%d.%m.%Y')}.</b>"
+
+
 def format_commands() -> str:
     ret = ""
     for en, ru in DEFAULT_STATES.items():
