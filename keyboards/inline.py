@@ -21,35 +21,54 @@ def rate_keyboard(time_session_id: int) -> InlineKeyboardBuilder:
     return builder
 
 
-def pagination_date_kb(info: str, current_day: datetime.date) -> InlineKeyboardBuilder:
-    today = date.get_now()
-    
-    yesterday = current_day - timedelta(days=1)
-    tomorrow = current_day + timedelta(days=1)
-    
-    buttons = []
-    buttons.append(
-        InlineKeyboardButton(
-            text=f"{yesterday.day} ←",
-            callback_data=f"{info}:{yesterday}"
-        )
-    )
-    buttons.append(
-        InlineKeyboardButton(
-            text=f"{current_day.day}/{current_day.month}",
-            callback_data=f"{info}:{current_day}:edit"
-        ),
-    )
-    if current_day.day != today.day:
-        buttons.append(
-            InlineKeyboardButton(
-                text=f"→ {tomorrow.day}",
-                callback_data=f"{info}:{tomorrow}"
-            ),
-        )
+def pagination_date_kb(
+    info: str,
+    current_day: datetime.date,
+    show_edit_button: bool = False
+) -> InlineKeyboardBuilder:
+    today = date.get_now().date()
+
+    prev_day = current_day - timedelta(days=1)
+    next_day = current_day + timedelta(days=1)
 
     builder = InlineKeyboardBuilder()
+
+    buttons = [
+        InlineKeyboardButton(
+            text=f"← {prev_day.day}",
+            callback_data=f"{info}:{prev_day}"
+        ),
+        InlineKeyboardButton(
+            text=f"📅 {current_day.strftime('%d.%m.%Y')}",
+            callback_data=f"calendar:{info}:month:{current_day.strftime('%Y-%m')}"
+        ),
+    ]
+
+    if current_day < today:
+        buttons.append(
+            InlineKeyboardButton(
+                text=f"{next_day.day} →",
+                callback_data=f"{info}:{next_day}"
+            )
+        )
+
     builder.row(*buttons)
+
+    if current_day != today:
+        builder.row(
+            InlineKeyboardButton(
+                text="📍 Сегодня",
+                callback_data=f"{info}:{today}"
+            )
+        )
+
+    if show_edit_button:
+        builder.row(
+            InlineKeyboardButton(
+                text="✏️ Редактировать",
+                callback_data=f"{info}:{current_day}:edit"
+            )
+        )
 
     return builder
 
