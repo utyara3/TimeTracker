@@ -86,7 +86,8 @@ async def choose_state_to_change(
         return
 
     builder = InlineKeyboardBuilder()
-    for state in states:
+    # reversed(): от первой сессии дня к последней, как в истории
+    for state in reversed(states):
         start_time = date.to_datetime(state['start_time'])
         start_time_str = date.format_time_hhmm(start_time)
         end_time = date.format_time_hhmm(
@@ -108,7 +109,7 @@ async def choose_state_to_change(
         )
     )
 
-    await callback.message.edit_text(msg.COMMON['choose_state_to_change'], reply_markup=builder.as_markup())
+    await callback.message.edit_text(msg.format_choose_state(day), reply_markup=builder.as_markup())
 
 
 @router.callback_query(F.data.startswith("back_to_states_list"))
