@@ -222,3 +222,6 @@ __marimo__/
 *.sqlite3
 *.db-shm
 *.db-wal
+
+# direnv / nix
+.direnv/
