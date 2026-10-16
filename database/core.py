@@ -167,6 +167,37 @@ async def get_user_states_by_date(
         return [dict(zip(columns, state)) for state in states]
 
 
+async def get_user_active_dates(
+    tg_obj: Message | CallbackQuery | None = None,
+    tg_id: int | None = None,
+    year: int | None = None,
+    month: int | None = None
+) -> set[int]:
+    """
+    Получить номера дней месяца, в которых есть хотя бы одна сессия.
+    Используется для отметки активных дней в календаре.
+    """
+    if tg_obj is not None:
+        tg_id = tg_obj.from_user.id
+
+    user_id = await get_user_id_by_tg_id(tg_id=tg_id)
+    if not user_id or year is None or month is None:
+        return set()
+
+    month_str = f"{year:04d}-{month:02d}"
+
+    async with aiosqlite.connect(USERS_DB_PATH) as conn:
+        cursor = await conn.execute("""
+            SELECT DISTINCT CAST(strftime('%d', ts.start_time) AS INTEGER) as day
+            FROM time_sessions ts
+            WHERE ts.user_id = ?
+              AND strftime('%Y-%m', ts.start_time) = ?
+        """, (user_id, month_str))
+
+        rows = await cursor.fetchall()
+        return {row[0] for row in rows}
+
+
 async def get_current_state(
     message: Message | None = None,
     tg_id: int | None = None
