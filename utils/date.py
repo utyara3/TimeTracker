@@ -88,6 +88,48 @@ def calculate_duration_seconds(
     return int((end_time - start_time).total_seconds())
 
 
+def day_boundary(day: datetime.date) -> datetime:
+    """Начало следующего дня — верхняя граница сессии в дневном виде."""
+    return datetime.combine(day + timedelta(days=1), datetime.min.time())
+
+
+def day_scoped_duration_seconds(
+    start_time: datetime | str,
+    end_time: datetime | str | None = None,
+    duration_seconds: int | None = None,
+    target_day: datetime.date | None = None
+) -> int:
+    """
+    Длительность сессии в контексте просматриваемого дня.
+
+    Закрытые сессии: приоритет сохранённого duration_seconds,
+    иначе end - start (как в calculate_duration_seconds).
+
+    Незакрытая сессия обрезается по границе суток target_day:
+    min(now, начало следующего дня). Без обрезки история за прошедшие
+    дни и статистика расходятся из-за бесконечно растущей длительности.
+    """
+    if duration_seconds is not None:
+        return int(duration_seconds)
+
+    if isinstance(start_time, str):
+        start_time = to_datetime(start_time)
+
+    if end_time is not None:
+        if isinstance(end_time, str):
+            end_time = to_datetime(end_time)
+        return int((end_time - start_time).total_seconds())
+
+    effective_end = get_now()
+    if target_day is not None:
+        effective_end = min(effective_end, day_boundary(target_day))
+
+    if effective_end <= start_time:
+        return 0
+
+    return int((effective_end - start_time).total_seconds())
+
+
 def format_time_hhmm(time: datetime | str) -> str:
     if isinstance(time, str):
         time = to_datetime(time)
